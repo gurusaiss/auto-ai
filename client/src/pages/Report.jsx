@@ -67,7 +67,8 @@ export default function Report() {
     summary, skills = [], sessions = [], agentDecisions = [],
     narrative, coachSummary, demonstratedSkills = [],
     domain, domainIcon, goalText, generatedAt,
-    adaptations = [], diagnosticScores = {}, profile = {}
+    adaptations = [], diagnosticScores = {}, profile = {},
+    capabilityStatement, nextMilestone, aiPowered
   } = report;
 
   const radarData = skills.map((s) => ({
@@ -132,8 +133,19 @@ export default function Report() {
             ))}
           </div>
           <div className="rounded-xl border-l-4 border-indigo-500 bg-indigo-50 p-4">
+            {aiPowered && (
+              <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2">
+                🤖 AI-Generated Narrative (Gemini 2.0 Flash)
+              </p>
+            )}
             <p className="text-sm text-slate-700 leading-relaxed">{narrative}</p>
           </div>
+          {capabilityStatement && (
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Capability Statement</p>
+              <p className="text-sm text-emerald-800 font-semibold leading-relaxed">{capabilityStatement}</p>
+            </div>
+          )}
         </Section>
 
         {/* SKILL ANALYSIS */}
@@ -305,6 +317,12 @@ export default function Report() {
         <Section title="Coach Analysis & Next Steps" icon="💡">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-slate-700 leading-relaxed mb-4">{coachSummary}</p>
+            {nextMilestone && (
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 mb-4">
+                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">Next Milestone</p>
+                <p className="text-sm text-indigo-800">{nextMilestone}</p>
+              </div>
+            )}
             {adaptations.length > 0 && (
               <>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Plan Adaptations Made by Agent</p>

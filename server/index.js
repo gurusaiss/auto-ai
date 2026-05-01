@@ -13,16 +13,17 @@ import reportRouter from './routes/report.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataPath = join(__dirname, 'data');
 
+// Load .env FIRST before anything else reads process.env
 loadEnv(join(__dirname, '..'));
+loadEnv(__dirname); // also load server/.env
 
 if (!existsSync(dataPath)) {
   mkdirSync(dataPath, { recursive: true });
 }
 
-// Load knowledge bank at startup — exit with code 1 if any file fails
+// Load knowledge bank at startup
 const knowledgePath = join(__dirname, 'knowledge');
 const knowledgeFiles = ['domains.json', 'questions.json', 'challenges.json'];
-
 for (const file of knowledgeFiles) {
   try {
     readFileSync(join(knowledgePath, file), 'utf-8');
@@ -33,11 +34,27 @@ for (const file of knowledgeFiles) {
 }
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const geminiEnabled = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 10);
 
 // Middleware
-app.use(cors({ origin: 'http://localhost:5173' }));
-app.use(express.json());
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'] }));
+app.use(express.json({ limit: '2mb' }));
+
+// ── Health check ────────────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      status: 'ok',
+      gemini: geminiEnabled ? 'enabled' : 'disabled (fallback mode)',
+      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      port: PORT,
+      uptime: Math.round(process.uptime()) + 's',
+      timestamp: new Date().toISOString()
+    }
+  });
+});
 
 // Routes
 app.use('/api/goal', goalRouter);
@@ -47,16 +64,19 @@ app.use('/api/report', reportRouter);
 
 // Global error handler
 app.use((err, req, res, _next) => {
-  console.error('[error]', err);
-  res.status(500).json({
-    success: false,
-    data: null,
-    error: err.message || 'Internal server error',
-  });
+  console.error('[error]', err.message);
+  res.status(500).json({ success: false, data: null, error: err.message || 'Internal server error' });
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`SkillForge AI server running on http://localhost:${PORT}`);
+  console.log(`
+╔══════════════════════════════════════╗
+║       SkillForge AI Server v2        ║
+╠══════════════════════════════════════╣
+║  Port:   ${PORT}                         ║
+║  Gemini: ${geminiEnabled ? '✅ ON  (gemini-2.0-flash)  ' : '❌ OFF (rule-based fallback)'}  ║
+║  Env:    ${process.env.NODE_ENV || 'development'}                    ║
+╚══════════════════════════════════════╝`);
 });
 
 export default app;

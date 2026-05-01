@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import GeminiService from '../services/GeminiService.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -64,35 +65,78 @@ class SkillDecomposer {
       }
     }
 
-    // No domain matched — build a dynamic domain from the goal text
-    if (maxScore === 0 || selectedDomain === null) {
-      return 'dynamic';
-    }
-
+    if (maxScore === 0 || selectedDomain === null) return 'dynamic';
     return selectedDomain;
+  }
+
+  // ── Gemini-powered universal decomposition ─────────────────────────────────
+  async decomposeWithLLM(goalText) {
+    const prompt = `You are an expert learning architect. A user wants to: "${goalText}"
+
+Analyze this goal and return a complete skill tree as JSON. This must work for ANY domain on earth — tailoring, cooking, music, law, medicine, martial arts, agriculture, languages, sports, etc.
+
+Return ONLY valid JSON with this exact structure:
+{
+  "domain": "snake_case_domain_id",
+  "domainLabel": "Human Readable Domain Name",
+  "domainIcon": "single relevant emoji",
+  "profile": {
+    "targetRole": "what they want to become",
+    "learnerLevel": "beginner|intermediate|advanced",
+    "intensity": "accelerated|balanced|deep",
+    "detectedTools": ["tool1", "tool2"],
+    "focusKeywords": ["keyword1", "keyword2", "keyword3"]
+  },
+  "skills": [
+    {
+      "id": "snake_case_skill_id",
+      "name": "Skill Display Name",
+      "description": "What this skill covers and why it matters",
+      "level": "beginner|intermediate|advanced",
+      "days": 4,
+      "topics": ["specific topic 1", "specific topic 2", "specific topic 3", "specific topic 4", "specific topic 5"],
+      "reason": "Why this skill is critical for their goal"
+    }
+  ],
+  "totalEstimatedDays": 35
+}
+
+Rules:
+- 4 to 6 skills, ordered foundational → advanced
+- Skills must be 100% specific to the domain (no generic "foundations" — name the real skills)
+- Topics must be real, domain-specific concepts (e.g. for tailoring: "seam allowance", "bias cut", not "core concepts")
+- days: 3 to 10 per skill
+- totalEstimatedDays: sum of all skill days
+- learnerLevel: infer from goal text (words like "beginner", "from scratch" → beginner)
+- detectedTools: real tools/materials used in that domain`;
+
+    try {
+      const result = await GeminiService.generateJSON(prompt,
+        'You are an expert curriculum designer. Return only valid JSON. Be specific to the exact domain — not generic.');
+
+      if (result && result.skills && result.skills.length >= 3) {
+        console.log(`[SkillDecomposer] Gemini decomposed "${goalText}" → ${result.domainLabel} (${result.skills.length} skills)`);
+        return result;
+      }
+    } catch (err) {
+      console.error('[SkillDecomposer] Gemini error:', err.message);
+    }
+    return null;
   }
 
   buildDynamicDomain(goalText, profile) {
     const lowerGoal = goalText.toLowerCase();
-
-    // Extract the main subject from the goal
     const learnMatch = lowerGoal.match(
-      /(?:learn|master|study|understand|explore|get into|practice|become good at)\s+(?:to\s+)?([a-z0-9#.+\s]+?)(?:\s+(?:from scratch|for beginners?|as a beginner|professionally|quickly|well|deeply|thoroughly))?(?:\s+and\s+.*)?$/
+      /(?:learn|master|study|understand|explore|get into|practice|become good at|become a|become an)\s+(?:to\s+)?([a-z0-9#.+\s]+?)(?:\s+(?:from scratch|for beginners?|as a beginner|professionally|quickly|well|deeply))?(?:\s+and\s+.*)?$/
     );
 
     let subject = learnMatch?.[1]?.trim() || goalText;
-    // Strip common filler words
     const stopwords = new Set(['i', 'want', 'to', 'the', 'a', 'an', 'and', 'or', 'how', 'make', 'create', 'write', 'use', 'with', 'be', 'do']);
-    subject = subject
-      .split(/\s+/)
-      .filter((w) => !stopwords.has(w))
-      .join(' ')
-      .replace(/[^\w\s#.+]/g, '')
-      .trim()
-      .slice(0, 40);
+    subject = subject.split(/\s+/).filter(w => !stopwords.has(w)).join(' ')
+      .replace(/[^\w\s#.+]/g, '').trim().slice(0, 40);
 
     const subjectId = subject.replace(/\s+/g, '_').toLowerCase().replace(/[^a-z0-9_]/g, '');
-    const subjectTitle = subject.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const subjectTitle = subject.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     const level = profile?.learnerLevel || 'beginner';
 
     return {
@@ -103,43 +147,29 @@ class SkillDecomposer {
           id: `${subjectId}_foundations`,
           name: `${subjectTitle} Foundations`,
           description: `Core concepts and mental models to begin learning ${subjectTitle}.`,
-          level: 'beginner',
-          days: 3,
-          topics: [
-            `introduction to ${subject}`,
-            'core concepts and terminology',
-            'getting started and setup',
-            'first hands-on example',
-            'essential tools and resources'
-          ]
+          level: 'beginner', days: 4,
+          topics: [`introduction to ${subject}`, 'core concepts', 'essential tools', 'first hands-on example', 'common terminology']
         },
         {
           id: `${subjectId}_practical`,
           name: `Practical ${subjectTitle}`,
-          description: `Apply ${subjectTitle} concepts through hands-on practice and real examples.`,
-          level: level === 'advanced' ? 'intermediate' : level,
-          days: 4,
-          topics: [
-            'practical techniques',
-            'common patterns and workflows',
-            'hands-on exercises',
-            'solving real problems',
-            'building small projects'
-          ]
+          description: `Apply ${subjectTitle} through hands-on practice.`,
+          level: level === 'advanced' ? 'intermediate' : level, days: 5,
+          topics: ['practical techniques', 'common patterns', 'hands-on exercises', 'solving real problems', 'building projects']
+        },
+        {
+          id: `${subjectId}_intermediate`,
+          name: `Intermediate ${subjectTitle}`,
+          description: `Go deeper with intermediate patterns and workflows.`,
+          level: 'intermediate', days: 4,
+          topics: ['intermediate concepts', 'workflow optimization', 'common challenges', 'quality improvement', 'real-world scenarios']
         },
         {
           id: `${subjectId}_advanced`,
           name: `Advanced ${subjectTitle}`,
-          description: `Go deeper with advanced patterns, best practices, and professional-level ${subjectTitle}.`,
-          level: 'advanced',
-          days: 3,
-          topics: [
-            'advanced concepts',
-            'best practices',
-            'optimization techniques',
-            'professional workflow',
-            'portfolio project'
-          ]
+          description: `Professional-level ${subjectTitle} techniques and best practices.`,
+          level: 'advanced', days: 4,
+          topics: ['advanced concepts', 'best practices', 'professional workflow', 'portfolio project', 'mastery techniques']
         }
       ]
     };
@@ -148,29 +178,21 @@ class SkillDecomposer {
   parseGoalProfile(goalText, domainId) {
     const lowerGoal = goalText.toLowerCase();
     const cleanedGoal = lowerGoal.replace(/[^a-z0-9\s/+.-]/g, ' ');
-    const focusKeywords = [...new Set(cleanedGoal.split(/\s+/).filter((word) => word.length > 2))];
+    const focusKeywords = [...new Set(cleanedGoal.split(/\s+/).filter(w => w.length > 2))];
     const detectedTools = [];
 
-    for (const [toolGroup, keywords] of Object.entries(this.toolKeywords)) {
+    for (const [, keywords] of Object.entries(this.toolKeywords)) {
       for (const keyword of keywords) {
-        if (lowerGoal.includes(keyword)) {
-          detectedTools.push(keyword);
-        }
+        if (lowerGoal.includes(keyword)) detectedTools.push(keyword);
       }
-      if (detectedTools.length >= 6) {
-        break;
-      }
+      if (detectedTools.length >= 6) break;
     }
-
-    const targetRole = this.extractTargetRole(lowerGoal, domainId);
-    const learnerLevel = this.detectLearnerLevel(lowerGoal);
-    const intensity = this.detectIntensity(lowerGoal);
 
     return {
       rawGoal: goalText,
-      targetRole,
-      learnerLevel,
-      intensity,
+      targetRole: this.extractTargetRole(lowerGoal, domainId),
+      learnerLevel: this.detectLearnerLevel(lowerGoal),
+      intensity: this.detectIntensity(lowerGoal),
       detectedTools: [...new Set(detectedTools)].slice(0, 6),
       focusKeywords,
       domainId
@@ -179,77 +201,49 @@ class SkillDecomposer {
 
   extractTargetRole(lowerGoal, domainId) {
     const rolePatterns = [
-      /become (?:a|an)?\s+([a-z0-9\s/+.-]+?)(?: developer| engineer| scientist| designer| marketer)?(?:$| with| in)/,
+      /become (?:a|an)?\s+([a-z0-9\s/+.-]+?)(?: developer| engineer| scientist| designer| marketer| tailor| chef| musician)?(?:$| with| in)/,
       /learn (?:to )?([a-z0-9\s/+.-]+?)(?:$| with| in)/,
       /master ([a-z0-9\s/+.-]+?)(?:$| with| in)/
     ];
-
     for (const pattern of rolePatterns) {
       const match = lowerGoal.match(pattern);
-      if (match?.[1]) {
-        return match[1].trim();
-      }
+      if (match?.[1]) return match[1].trim();
     }
-
     const domainNames = {
-      backend_development: 'backend developer',
-      machine_learning: 'machine learning engineer',
-      ui_ux_design: 'ui/ux designer',
-      digital_marketing: 'digital marketer',
-      data_science: 'data scientist'
+      backend_development: 'backend developer', machine_learning: 'ML engineer',
+      ui_ux_design: 'UX designer', digital_marketing: 'digital marketer', data_science: 'data scientist'
     };
-
     return domainNames[domainId] || 'specialist';
   }
 
   detectLearnerLevel(lowerGoal) {
-    if (/(beginner|from scratch|new to|no experience)/.test(lowerGoal)) {
-      return 'beginner';
-    }
-    if (/(advanced|expert|master|deeper|production)/.test(lowerGoal)) {
-      return 'advanced';
-    }
+    if (/(beginner|from scratch|new to|no experience|never|just starting)/.test(lowerGoal)) return 'beginner';
+    if (/(advanced|expert|master|deeper|production|professional)/.test(lowerGoal)) return 'advanced';
     return 'intermediate';
   }
 
   detectIntensity(lowerGoal) {
-    if (/(quickly|fast|urgent|asap|soon)/.test(lowerGoal)) {
-      return 'accelerated';
-    }
-    if (/(thorough|deep|complete|mastery)/.test(lowerGoal)) {
-      return 'deep';
-    }
-    return 'steady';
+    if (/(quickly|fast|urgent|asap|soon|rapid)/.test(lowerGoal)) return 'accelerated';
+    if (/(thorough|deep|complete|mastery|comprehensive)/.test(lowerGoal)) return 'deep';
+    return 'balanced';
   }
 
   personalizeSkills(domain, profile) {
-    const prioritizedSkills = domain.skills.map((skill, index) => {
-      const searchableText = `${skill.name} ${skill.description} ${(skill.topics || []).join(' ')}`.toLowerCase();
+    const prioritized = domain.skills.map((skill, index) => {
+      const searchText = `${skill.name} ${skill.description} ${(skill.topics || []).join(' ')}`.toLowerCase();
       let relevanceScore = 0;
-
-      for (const keyword of profile.focusKeywords) {
-        if (searchableText.includes(keyword)) {
-          relevanceScore += keyword.length > 5 ? 3 : 2;
-        }
+      for (const kw of profile.focusKeywords) {
+        if (searchText.includes(kw)) relevanceScore += kw.length > 5 ? 3 : 2;
       }
-
       for (const tool of profile.detectedTools) {
-        if (searchableText.includes(tool)) {
-          relevanceScore += 4;
-        }
+        if (searchText.includes(tool)) relevanceScore += 4;
       }
-
-      if (profile.targetRole && searchableText.includes(profile.targetRole)) {
-        relevanceScore += 5;
-      }
-
-      const personalizedTopics = this.personalizeTopics(skill.topics || [], profile);
-      const personalizedDays = this.personalizeDays(skill.days, relevanceScore, profile.intensity);
+      if (profile.targetRole && searchText.includes(profile.targetRole)) relevanceScore += 5;
 
       return {
         ...skill,
-        topics: personalizedTopics,
-        days: personalizedDays,
+        topics: this.personalizeTopics(skill.topics || [], profile),
+        days: this.personalizeDays(skill.days, relevanceScore, profile.intensity),
         relevanceScore,
         reason: this.buildSkillReason(skill, profile, relevanceScore),
         recommendedFor: profile.targetRole,
@@ -257,79 +251,96 @@ class SkillDecomposer {
       };
     });
 
-    return prioritizedSkills.sort((left, right) => {
-      if (right.relevanceScore !== left.relevanceScore) {
-        return right.relevanceScore - left.relevanceScore;
-      }
-      return left.days - right.days;
+    return prioritized.sort((a, b) => {
+      if (b.relevanceScore !== a.relevanceScore) return b.relevanceScore - a.relevanceScore;
+      return a.days - b.days;
     });
   }
 
   personalizeTopics(topics, profile) {
-    const matched = topics.filter((topic) =>
-      profile.focusKeywords.some((keyword) => topic.toLowerCase().includes(keyword))
-        || profile.detectedTools.some((tool) => topic.toLowerCase().includes(tool))
+    const matched = topics.filter(t =>
+      profile.focusKeywords.some(kw => t.toLowerCase().includes(kw)) ||
+      profile.detectedTools.some(tool => t.toLowerCase().includes(tool))
     );
-    const remaining = topics.filter((topic) => !matched.includes(topic));
+    const remaining = topics.filter(t => !matched.includes(t));
     return [...matched, ...remaining];
   }
 
   personalizeDays(baseDays, relevanceScore, intensity) {
-    let adjustedDays = baseDays;
-
-    if (relevanceScore >= 8) adjustedDays += 1;
-    if (relevanceScore >= 14) adjustedDays += 1;
-    if (intensity === 'accelerated') adjustedDays = Math.max(1, adjustedDays - 1);
-    if (intensity === 'deep') adjustedDays += 1;
-
-    return adjustedDays;
+    let days = baseDays;
+    if (relevanceScore >= 8) days += 1;
+    if (relevanceScore >= 14) days += 1;
+    if (intensity === 'accelerated') days = Math.max(1, days - 1);
+    if (intensity === 'deep') days += 1;
+    return days;
   }
 
   buildSkillReason(skill, profile, relevanceScore) {
-    if (relevanceScore <= 0) {
-      return `Included as a foundation for becoming a ${profile.targetRole}.`;
-    }
-
-    const matchingTopic = (skill.topics || []).find((topic) =>
-      profile.focusKeywords.some((keyword) => topic.toLowerCase().includes(keyword))
-        || profile.detectedTools.some((tool) => topic.toLowerCase().includes(tool))
+    if (relevanceScore <= 0) return `Foundation for becoming a ${profile.targetRole}.`;
+    const matchingTopic = (skill.topics || []).find(t =>
+      profile.focusKeywords.some(kw => t.toLowerCase().includes(kw)) ||
+      profile.detectedTools.some(tool => t.toLowerCase().includes(tool))
     );
-
-    if (matchingTopic) {
-      return `Prioritized because your goal mentions ${matchingTopic.toLowerCase()} and aligns with ${skill.name}.`;
-    }
-
-    return `Prioritized because ${skill.name} strongly supports your ${profile.targetRole} goal.`;
+    if (matchingTopic) return `Prioritized because your goal mentions "${matchingTopic}" and directly aligns with ${skill.name}.`;
+    return `Critical skill for your ${profile.targetRole} goal.`;
   }
 
-  decompose(goalText) {
+  // ── Main entry point — tries Gemini first, falls back to rule-based ────────
+  async decompose(goalText) {
+    // Try Gemini first (handles ANY domain on earth)
+    if (GeminiService.isEnabled()) {
+      const llmResult = await this.decomposeWithLLM(goalText);
+      if (llmResult) {
+        const profile = {
+          rawGoal: goalText,
+          targetRole: llmResult.profile?.targetRole || 'specialist',
+          learnerLevel: llmResult.profile?.learnerLevel || 'intermediate',
+          intensity: llmResult.profile?.intensity || 'balanced',
+          detectedTools: llmResult.profile?.detectedTools || [],
+          focusKeywords: llmResult.profile?.focusKeywords || [],
+          domainId: llmResult.domain
+        };
+        const skills = (llmResult.skills || []).map((s, i) => ({
+          ...s,
+          reason: s.reason || `Core skill for ${llmResult.domainLabel}`,
+          sequenceHint: i + 1,
+          relevanceScore: 10 - i
+        }));
+        return {
+          domain: llmResult.domain || 'custom',
+          domainName: llmResult.domainLabel || llmResult.domain,
+          domainIcon: llmResult.domainIcon || '🚀',
+          profile,
+          skills
+        };
+      }
+    }
+
+    // Rule-based fallback
     const domainId = this.detectDomain(goalText);
 
     if (domainId === 'dynamic') {
       const profile = this.parseGoalProfile(goalText, 'custom');
       const dynamicDomain = this.buildDynamicDomain(goalText, profile);
-      const skills = this.personalizeSkills(dynamicDomain, profile);
       return {
         domain: 'custom',
         domainName: dynamicDomain.name,
+        domainIcon: '🚀',
         profile,
-        skills
+        skills: this.personalizeSkills(dynamicDomain, profile)
       };
     }
 
     const domain = this.domains[domainId];
-    if (!domain) {
-      throw new Error(`Domain not found: ${domainId}`);
-    }
+    if (!domain) throw new Error(`Domain not found: ${domainId}`);
 
     const profile = this.parseGoalProfile(goalText, domainId);
-    const skills = this.personalizeSkills(domain, profile);
-
     return {
       domain: domainId,
       domainName: domain.name,
+      domainIcon: this.domainIcons[domainId] || '🚀',
       profile,
-      skills
+      skills: this.personalizeSkills(domain, profile)
     };
   }
 

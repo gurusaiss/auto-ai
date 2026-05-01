@@ -24,7 +24,7 @@ router.post('/generate', async (req, res) => {
 
     res.json({
       success: true,
-      data: { report },
+      data: report,
       error: null
     });
   } catch (error) {

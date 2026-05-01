@@ -181,7 +181,7 @@ export default function Dashboard() {
   if (error) return <div className="p-8 text-red-400 text-center">{error}</div>;
   if (!dashboard) return null;
 
-  const { goal, learningPlan, sessions, stats, adaptations, diagnosticScores, agentDecisions = [] } = dashboard;
+  const { goal, learningPlan, sessions, stats, adaptations, diagnosticScores, agentDecisions = [], aiPowered } = dashboard;
   const completed = learningPlan.filter(d => d.completed).length;
   const total = learningPlan.length;
   const completionPct = total ? Math.round((completed / total) * 100) : 0;
@@ -205,7 +205,14 @@ export default function Dashboard() {
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-2xl flex-shrink-0">{goal.domainIcon}</span>
           <div className="min-w-0">
-            <p className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Active Goal</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-[9px] text-slate-500 uppercase tracking-widest font-black">Active Goal</p>
+              {aiPowered && (
+                <span className="text-[8px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 font-black uppercase tracking-widest">
+                  🤖 Gemini Powered
+                </span>
+              )}
+            </div>
             <p className="text-base font-black text-slate-100 truncate max-w-xl">{goal.goalText}</p>
           </div>
         </div>
@@ -289,6 +296,33 @@ export default function Dashboard() {
                       {new Date(s.completedAt).toLocaleDateString()}
                     </span>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Real-World Mission (after 5+ sessions) */}
+          {sessions.length >= 5 && (
+            <div className="rounded-xl border border-teal-500/30 bg-teal-500/5 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-base">🌍</span>
+                <div>
+                  <p className="text-[10px] font-black text-teal-400 uppercase tracking-widest">Real-World Mission</p>
+                  <p className="text-[9px] text-teal-600">Unlocked after 5 sessions</p>
+                </div>
+              </div>
+              <p className="text-sm text-teal-200 font-semibold mb-1">
+                Apply your {goal.domainLabel} skills to a real project
+              </p>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                You've completed {sessions.length} sessions. It's time to test your skills in a real-world context.
+                Build something with what you've learned — even a small project counts.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(goal.skills || []).filter(s => s.mastery >= 50).slice(0, 3).map(s => (
+                  <span key={s.id} className="text-[10px] px-2 py-1 rounded-lg bg-teal-500/10 text-teal-300 border border-teal-500/20">
+                    ✓ {s.name}
+                  </span>
                 ))}
               </div>
             </div>

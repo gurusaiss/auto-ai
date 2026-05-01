@@ -12,7 +12,6 @@ function CountUp({ target, duration = 1200 }) {
     const step = () => {
       const elapsed = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out
       const eased = 1 - Math.pow(1 - progress, 3);
       setCurrent(Math.round(eased * target));
       if (progress < 1) requestAnimationFrame(step);
@@ -30,13 +29,102 @@ const GRADE_META = {
   F: { label: 'Keep Going',  color: '#EF4444', bg: 'bg-red-500/15',     border: 'border-red-500/30',     emoji: '🔄' },
 };
 
+// ── Reflection Journal Component ─────────────────────────────────────────────
+function ReflectionJournal({ skillName, score, grade, onComplete }) {
+  const [reflection, setReflection] = useState('');
+  const [keyTakeaway, setKeyTakeaway] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const wordCount = reflection.trim() ? reflection.trim().split(/\s+/).length : 0;
+
+  const handleSubmit = () => {
+    const entry = {
+      date: new Date().toISOString(),
+      skillName,
+      score,
+      grade,
+      reflection,
+      keyTakeaway,
+    };
+    const existing = JSON.parse(localStorage.getItem('skillforge:journal') || '[]');
+    localStorage.setItem('skillforge:journal', JSON.stringify([...existing, entry].slice(-50)));
+    setSubmitted(true);
+    setTimeout(onComplete, 1200);
+  };
+
+  if (submitted) {
+    return (
+      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center">
+        <div className="text-3xl mb-2">📓</div>
+        <p className="text-sm font-black text-emerald-400">Reflection saved!</p>
+        <p className="text-xs text-slate-500 mt-1">Added to your learning journal.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-purple-500/30 bg-purple-500/5 p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="text-xl">📓</span>
+        <div>
+          <h3 className="text-sm font-black text-slate-200 uppercase tracking-wide">Reflection Journal</h3>
+          <p className="text-xs text-slate-500">Take 2 minutes to consolidate what you learned</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">
+            What did you learn today? What was challenging?
+          </label>
+          <textarea
+            value={reflection}
+            onChange={e => setReflection(e.target.value)}
+            className="w-full min-h-[100px] rounded-xl border border-slate-700 bg-[#060B14] p-3 text-slate-200 text-sm focus:border-purple-500 focus:outline-none resize-none"
+            placeholder="e.g. I understood seam allowance better, but struggled with bias cut technique..."
+          />
+          <p className={`text-xs mt-1 ${wordCount >= 15 ? 'text-emerald-400' : 'text-slate-600'}`}>{wordCount} words</p>
+        </div>
+
+        <div>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">
+            One key takeaway to remember:
+          </label>
+          <input
+            type="text"
+            value={keyTakeaway}
+            onChange={e => setKeyTakeaway(e.target.value)}
+            className="w-full rounded-xl border border-slate-700 bg-[#060B14] px-3 py-2.5 text-slate-200 text-sm focus:border-purple-500 focus:outline-none"
+            placeholder="e.g. Always add 5/8 inch seam allowance before cutting..."
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={handleSubmit}
+          disabled={!reflection.trim() || !keyTakeaway.trim()}
+          className="flex-1 py-2.5 rounded-xl font-bold text-sm bg-purple-600 hover:bg-purple-500 text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Save Reflection
+        </button>
+        <button
+          onClick={onComplete}
+          className="px-4 py-2.5 rounded-xl text-sm text-slate-600 border border-slate-800 hover:text-slate-400 hover:border-slate-700 transition-all"
+        >
+          Skip
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Session() {
   const { day } = useParams();
   const navigate = useNavigate();
   const userId = localStorage.getItem('skillforge:userId');
 
   const [data, setData] = useState(null);
-  const [phase, setPhase] = useState('loading'); // loading | confidence | challenge | evaluating | result
+  const [phase, setPhase] = useState('loading'); // loading | confidence | challenge | evaluating | result | journal
   const [response, setResponse] = useState('');
   const [showHints, setShowHints] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
@@ -54,7 +142,7 @@ export default function Session() {
     api.getChallenge(userId, day)
       .then(payload => {
         setData(payload);
-        setPhase('confidence'); // Show confidence selector first
+        setPhase('confidence');
       })
       .catch(e => { setError(e.message); setPhase('error'); });
   }, [day, userId, navigate]);
@@ -77,7 +165,6 @@ export default function Session() {
       });
       setResult(payload);
 
-      // Save calibration data
       if (confidenceLevel) {
         const predicted = confidenceLevel * 20;
         const cals = [...historicalCalibrations, { predicted, actual: payload.evaluation.score, day: Number(day) }];
@@ -94,7 +181,7 @@ export default function Session() {
   // ── LOADING ──────────────────────────────────────────────────────────────
   if (phase === 'loading') return (
     <div className="mx-auto max-w-4xl px-6 py-14">
-      <AgentThinking isVisible messages={["Loading today's mission…", 'Fetching challenge…', 'Calibrating difficulty…']} />
+      <AgentThinking isVisible messages={["Loading today's mission…", 'Generating challenge…', 'Calibrating difficulty…']} />
     </div>
   );
 
@@ -127,7 +214,7 @@ export default function Session() {
     <div className="mx-auto max-w-4xl px-6 py-14">
       <AgentThinking
         isVisible
-        messages={['Evaluating your response…', 'Checking reasoning quality…', 'Analysing coverage of criteria…', 'Calibrating final score…']}
+        messages={['Evaluating your response…', 'Checking reasoning quality…', 'Analysing coverage of criteria…', 'Calibrating final score…', 'Almost done…']}
       />
     </div>
   );
@@ -139,6 +226,7 @@ export default function Session() {
       scenario: '#F59E0B', practical: '#10B981', implementation: '#3B82F6', query: '#EC4899',
     };
     const typeColor = typeColors[data.challenge.type] || '#6366F1';
+    const isAI = data.challenge.source === 'llm';
 
     return (
       <div className="mx-auto max-w-4xl px-6 py-8 space-y-5">
@@ -157,6 +245,11 @@ export default function Session() {
             >
               {data.challenge.type}
             </span>
+            {isAI && (
+              <span className="text-xs px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30 font-semibold">
+                🤖 AI-Generated
+              </span>
+            )}
           </div>
           <button
             onClick={() => navigate('/dashboard')}
@@ -171,7 +264,6 @@ export default function Session() {
           <h1 className="text-2xl font-black text-slate-100 mb-4">{data.challenge.title}</h1>
           <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{data.challenge.description}</p>
 
-          {/* Criteria preview */}
           <div className="mt-4 flex flex-wrap gap-1.5">
             {(data.challenge.evaluation_criteria || []).slice(0, 5).map(c => (
               <span key={c} className="text-[9px] px-2 py-0.5 rounded-full border border-slate-700 text-slate-500 bg-slate-800/50 uppercase tracking-wide">
@@ -231,30 +323,60 @@ export default function Session() {
     );
   }
 
+  // ── REFLECTION JOURNAL ───────────────────────────────────────────────────
+  if (phase === 'journal' && result) {
+    const { evaluation } = result;
+    return (
+      <div className="mx-auto max-w-2xl px-6 py-8 space-y-5">
+        <div className="text-center">
+          <p className="text-xs text-slate-500 uppercase tracking-widest font-black">Session {day} Complete</p>
+          <h1 className="text-xl font-black text-slate-100 mt-1">Lock In Your Learning</h1>
+        </div>
+        <ReflectionJournal
+          skillName={data?.planDay?.skillName || ''}
+          score={evaluation.score}
+          grade={evaluation.grade}
+          onComplete={() => navigate('/dashboard')}
+        />
+      </div>
+    );
+  }
+
   // ── RESULT ───────────────────────────────────────────────────────────────
   if (phase === 'result' && result) {
     const { evaluation, adaptations: newAdaptations } = result;
     const gradeMeta = GRADE_META[evaluation.grade] || GRADE_META.F;
+    const isAIEval = evaluation.source === 'llm';
 
     return (
       <div className="mx-auto max-w-4xl px-6 py-8 space-y-5">
         {/* Score hero */}
         <div className={`rounded-2xl border p-6 text-center ${gradeMeta.bg} ${gradeMeta.border}`}>
           <div className="text-5xl mb-2">{gradeMeta.emoji}</div>
-          <div
-            className="text-8xl font-black font-mono mb-1"
-            style={{ color: gradeMeta.color }}
-          >
+          <div className="text-8xl font-black font-mono mb-1" style={{ color: gradeMeta.color }}>
             <CountUp target={evaluation.score} />
           </div>
-          <div
-            className="text-sm font-black uppercase tracking-widest"
-            style={{ color: gradeMeta.color }}
-          >
+          <div className="text-sm font-black uppercase tracking-widest" style={{ color: gradeMeta.color }}>
             Grade {evaluation.grade} — {gradeMeta.label}
           </div>
+          {isAIEval && (
+            <span className="inline-block mt-2 text-xs px-3 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30 font-semibold">
+              🤖 Evaluated by Gemini 2.0 Flash
+            </span>
+          )}
           <p className="text-slate-400 text-sm mt-3 max-w-lg mx-auto leading-relaxed">{evaluation.feedback}</p>
         </div>
+
+        {/* AI Coach Note */}
+        {evaluation.coachNote && (
+          <div className="rounded-xl border border-violet-500/30 bg-violet-500/8 p-4 flex items-start gap-3">
+            <span className="text-lg flex-shrink-0">🤖</span>
+            <div>
+              <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-1">AI Coach Note</p>
+              <p className="text-sm text-slate-300 leading-relaxed">{evaluation.coachNote}</p>
+            </div>
+          </div>
+        )}
 
         {/* Strengths + Weaknesses */}
         <div className="grid md:grid-cols-2 gap-4">
@@ -323,10 +445,16 @@ export default function Session() {
         {/* Navigation */}
         <div className="flex gap-3">
           <button
+            onClick={() => setPhase('journal')}
+            className="flex-1 py-3.5 rounded-xl font-black text-sm border border-purple-700/50 bg-purple-900/20 text-purple-300 hover:text-purple-200 hover:border-purple-600 transition-all"
+          >
+            📓 Reflect & Journal
+          </button>
+          <button
             onClick={() => navigate('/dashboard')}
             className="flex-1 py-3.5 rounded-xl font-black text-sm border border-slate-700 bg-slate-900/60 text-slate-300 hover:text-white hover:border-slate-500 transition-all"
           >
-            ← Back to Dashboard
+            ← Dashboard
           </button>
           {result.nextDay && (
             <button

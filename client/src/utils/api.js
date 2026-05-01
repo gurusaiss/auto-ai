@@ -7,9 +7,13 @@ const request = async (path, options = {}) => {
         'Content-Type': 'application/json',
         ...(options.headers || {})
       },
+      signal: AbortSignal.timeout(60000), // 60s timeout for Gemini calls
       ...options
     });
-  } catch (_error) {
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+      throw new Error('Request timed out. The AI is taking too long — please try again.');
+    }
     throw new Error('Could not reach the app server. Make sure the frontend and backend are both running.');
   }
 

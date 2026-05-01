@@ -1,12 +1,61 @@
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import GeminiService from '../services/GeminiService.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 class ChallengeEngine {
   constructor() {
     this.challenges = JSON.parse(readFileSync(join(__dirname, '../knowledge/challenges.json'), 'utf-8'));
+  }
+
+  // ── Gemini-powered challenge generation ─────────────────────────────────
+  async generateWithLLM(planDay, session) {
+    const goal = session?.goal?.goalText || planDay.skillName;
+    const domain = session?.goal?.domainLabel || planDay.skillId;
+    const topic = planDay.topic || planDay.skillName;
+    const skillName = planDay.skillName || planDay.skillId;
+    const sessionType = planDay.sessionType || 'practice';
+    const recentWeaknesses = session?.sessions?.slice(-3).flatMap(s => s.weaknesses || []).slice(0, 3) || [];
+
+    const prompt = `You are creating a learning challenge for someone who wants to: "${goal}"
+Domain: ${domain}
+Current skill: ${skillName}
+Today's topic: ${topic}
+Session type: ${sessionType}
+${recentWeaknesses.length ? `Recent weak areas to address: ${recentWeaknesses.join(', ')}` : ''}
+
+Return ONLY valid JSON:
+{
+  "id": "ch_${planDay.skillId}_day${planDay.day}",
+  "title": "Specific, engaging challenge title",
+  "description": "Detailed, domain-specific challenge description (2-3 sentences). Be concrete — name real tools, techniques, or scenarios from ${domain}.",
+  "type": "${sessionType}",
+  "hints": ["Hint 1 specific to ${topic}", "Hint 2", "Hint 3"],
+  "evaluation_criteria": ["criterion1", "criterion2", "criterion3", "criterion4"],
+  "model_solution": "A strong response would demonstrate... (2-3 sentences on what good looks like)",
+  "estimated_minutes": 25
+}
+
+Rules:
+- Challenge must be 100% specific to "${topic}" in "${domain}" — NOT generic
+- Description should describe a real scenario they'd face (e.g. for tailoring: "You have a client who needs an A-line skirt with a 14-inch zipper...")
+- Evaluation criteria must be measurable and domain-specific
+- Hints should guide without giving the answer away`;
+
+    try {
+      const result = await GeminiService.generateJSON(prompt,
+        `You are an expert ${domain} instructor creating practical challenges. Return only valid JSON.`);
+
+      if (result?.title && result?.description) {
+        console.log(`[ChallengeEngine] Gemini generated challenge for Day ${planDay.day}: "${result.title}"`);
+        return { ...result, source: 'llm' };
+      }
+    } catch (err) {
+      console.error('[ChallengeEngine] Gemini error:', err.message);
+    }
+    return null;
   }
 
   personalizeChallenge(challenge, planDay, session) {
@@ -66,7 +115,7 @@ class ChallengeEngine {
       },
       review: {
         title: `Review & reinforce ${topic}${roleContext}`,
-        description: `You've been working on ${skillName}. Review your understanding of "${topic}" by explaining it to a junior developer. What are the most common mistakes? How do you avoid them?`,
+        description: `You've been working on ${skillName}. Review your understanding of "${topic}" by explaining it to a junior learner. What are the most common mistakes? How do you avoid them?`,
         hints: [
           `Think about what confused you most when first learning "${topic}".`,
           `Give at least one "do this, not that" example.`,
@@ -102,7 +151,15 @@ class ChallengeEngine {
     };
   }
 
-  getChallengeForDay(planDay, session = null) {
+  // ── Main entry — tries Gemini first, falls back to static then dynamic ───
+  async getChallengeForDay(planDay, session = null) {
+    // Try Gemini for domain-specific challenges
+    if (GeminiService.isEnabled()) {
+      const llmChallenge = await this.generateWithLLM(planDay, session);
+      if (llmChallenge) return llmChallenge;
+    }
+
+    // Try static knowledge bank
     const options = this.challenges[planDay.skillId] || [];
     const challenge = options.find((entry) => entry.id === planDay.challengeId)
       || options.find((entry) => {
