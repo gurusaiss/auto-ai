@@ -29,22 +29,107 @@ const GRADE_META = {
   F: { label: 'Keep Going',  color: '#EF4444', bg: 'bg-red-500/15',     border: 'border-red-500/30',     emoji: '🔄' },
 };
 
-// ── Reflection Journal Component ─────────────────────────────────────────────
+const OPTION_LABELS = ['A', 'B', 'C', 'D'];
+const OPTION_COLORS = {
+  correct:   'border-emerald-500 bg-emerald-500/20 text-emerald-100',
+  wrong:     'border-red-500 bg-red-500/20 text-red-200',
+  selected:  'border-indigo-500 bg-indigo-500/20 text-white',
+  default:   'border-slate-700 bg-slate-800/30 text-slate-300 hover:border-slate-500 hover:bg-slate-800/70',
+};
+
+// ── MCQ Warm-up Component ────────────────────────────────────────────────────
+function WarmupMCQ({ question, onDone }) {
+  const [selected, setSelected] = useState(null);
+  const [revealed, setRevealed] = useState(false);
+
+  if (!question) return null;
+
+  const getOptionText = (opt) => opt.replace(/^[A-D]\)\s*/, '').trim();
+  const isCorrect = (opt) => opt === question.correct;
+
+  const handleSelect = (opt) => {
+    if (revealed) return;
+    setSelected(opt);
+    setRevealed(true);
+  };
+
+  return (
+    <div className="rounded-2xl border border-indigo-500/30 bg-slate-900/80 p-6 space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="text-lg">🎯</span>
+        <div>
+          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Warm-Up Question</p>
+          <p className="text-[9px] text-slate-600">Quick MCQ before your practice session</p>
+        </div>
+      </div>
+
+      <h2 className="text-base font-black text-slate-100 leading-snug">{question.question}</h2>
+
+      <div className="space-y-2">
+        {(question.options || []).map((opt, idx) => {
+          const label = OPTION_LABELS[idx];
+          let style = OPTION_COLORS.default;
+          if (revealed) {
+            if (isCorrect(opt)) style = OPTION_COLORS.correct;
+            else if (selected === opt && !isCorrect(opt)) style = OPTION_COLORS.wrong;
+          } else if (selected === opt) {
+            style = OPTION_COLORS.selected;
+          }
+
+          return (
+            <button
+              key={opt}
+              onClick={() => handleSelect(opt)}
+              disabled={revealed}
+              className={`w-full flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${style} ${revealed ? 'cursor-default' : 'cursor-pointer'}`}
+            >
+              <span className={`w-6 h-6 rounded-md flex-shrink-0 flex items-center justify-center text-[11px] font-black border
+                ${revealed && isCorrect(opt) ? 'bg-emerald-500 text-white border-emerald-400'
+                  : revealed && selected === opt && !isCorrect(opt) ? 'bg-red-500 text-white border-red-400'
+                  : 'border-slate-600 text-slate-500 bg-slate-800'}`}>
+                {revealed && isCorrect(opt) ? '✓' : revealed && selected === opt && !isCorrect(opt) ? '✗' : label}
+              </span>
+              <span className="text-sm leading-relaxed">{getOptionText(opt)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {revealed && (
+        <div className={`rounded-xl p-4 ${selected === question.correct ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-amber-500/10 border border-amber-500/30'}`}>
+          <p className={`text-xs font-black mb-1 ${selected === question.correct ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {selected === question.correct ? '✅ Correct!' : '💡 Not quite —'}
+          </p>
+          <p className="text-xs text-slate-400 leading-relaxed">{question.explanation}</p>
+          <button
+            onClick={onDone}
+            className="mt-3 w-full py-2.5 rounded-xl font-black text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transition-all"
+          >
+            Continue to Practice →
+          </button>
+        </div>
+      )}
+
+      {!revealed && (
+        <button
+          onClick={onDone}
+          className="w-full py-2 rounded-xl text-xs text-slate-600 border border-slate-800 hover:text-slate-400 hover:border-slate-700 transition-all"
+        >
+          Skip warm-up →
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Reflection Journal ───────────────────────────────────────────────────────
 function ReflectionJournal({ skillName, score, grade, onComplete }) {
   const [reflection, setReflection] = useState('');
   const [keyTakeaway, setKeyTakeaway] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const wordCount = reflection.trim() ? reflection.trim().split(/\s+/).length : 0;
 
   const handleSubmit = () => {
-    const entry = {
-      date: new Date().toISOString(),
-      skillName,
-      score,
-      grade,
-      reflection,
-      keyTakeaway,
-    };
+    const entry = { date: new Date().toISOString(), skillName, score, grade, reflection, keyTakeaway };
     const existing = JSON.parse(localStorage.getItem('skillforge:journal') || '[]');
     localStorage.setItem('skillforge:journal', JSON.stringify([...existing, entry].slice(-50)));
     setSubmitted(true);
@@ -67,38 +152,28 @@ function ReflectionJournal({ skillName, score, grade, onComplete }) {
         <span className="text-xl">📓</span>
         <div>
           <h3 className="text-sm font-black text-slate-200 uppercase tracking-wide">Reflection Journal</h3>
-          <p className="text-xs text-slate-500">Take 2 minutes to consolidate what you learned</p>
+          <p className="text-xs text-slate-500">2 minutes to consolidate what you learned</p>
         </div>
       </div>
-
-      <div className="space-y-3">
-        <div>
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">
-            What did you learn today? What was challenging?
-          </label>
-          <textarea
-            value={reflection}
-            onChange={e => setReflection(e.target.value)}
-            className="w-full min-h-[100px] rounded-xl border border-slate-700 bg-[#060B14] p-3 text-slate-200 text-sm focus:border-purple-500 focus:outline-none resize-none"
-            placeholder="e.g. I understood seam allowance better, but struggled with bias cut technique..."
-          />
-          <p className={`text-xs mt-1 ${wordCount >= 15 ? 'text-emerald-400' : 'text-slate-600'}`}>{wordCount} words</p>
-        </div>
-
-        <div>
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">
-            One key takeaway to remember:
-          </label>
-          <input
-            type="text"
-            value={keyTakeaway}
-            onChange={e => setKeyTakeaway(e.target.value)}
-            className="w-full rounded-xl border border-slate-700 bg-[#060B14] px-3 py-2.5 text-slate-200 text-sm focus:border-purple-500 focus:outline-none"
-            placeholder="e.g. Always add 5/8 inch seam allowance before cutting..."
-          />
-        </div>
+      <div>
+        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">What did you learn? What was challenging?</label>
+        <textarea
+          value={reflection}
+          onChange={e => setReflection(e.target.value)}
+          className="w-full min-h-[90px] rounded-xl border border-slate-700 bg-[#060B14] p-3 text-slate-200 text-sm focus:border-purple-500 focus:outline-none resize-none"
+          placeholder="e.g. I understood seam allowance better today, but bias cut is still confusing..."
+        />
       </div>
-
+      <div>
+        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">One key takeaway:</label>
+        <input
+          type="text"
+          value={keyTakeaway}
+          onChange={e => setKeyTakeaway(e.target.value)}
+          className="w-full rounded-xl border border-slate-700 bg-[#060B14] px-3 py-2.5 text-slate-200 text-sm focus:border-purple-500 focus:outline-none"
+          placeholder="e.g. Always press seams open after sewing..."
+        />
+      </div>
       <div className="flex gap-3">
         <button
           onClick={handleSubmit}
@@ -107,10 +182,7 @@ function ReflectionJournal({ skillName, score, grade, onComplete }) {
         >
           Save Reflection
         </button>
-        <button
-          onClick={onComplete}
-          className="px-4 py-2.5 rounded-xl text-sm text-slate-600 border border-slate-800 hover:text-slate-400 hover:border-slate-700 transition-all"
-        >
+        <button onClick={onComplete} className="px-4 py-2.5 rounded-xl text-sm text-slate-600 border border-slate-800 hover:text-slate-400 transition-all">
           Skip
         </button>
       </div>
@@ -118,13 +190,15 @@ function ReflectionJournal({ skillName, score, grade, onComplete }) {
   );
 }
 
+// ── Main Session Component ───────────────────────────────────────────────────
 export default function Session() {
   const { day } = useParams();
   const navigate = useNavigate();
   const userId = localStorage.getItem('skillforge:userId');
 
   const [data, setData] = useState(null);
-  const [phase, setPhase] = useState('loading'); // loading | confidence | challenge | evaluating | result | journal
+  // phases: loading | confidence | warmup | challenge | evaluating | result | journal
+  const [phase, setPhase] = useState('loading');
   const [response, setResponse] = useState('');
   const [showHints, setShowHints] = useState(false);
   const [showSolution, setShowSolution] = useState(false);
@@ -147,11 +221,6 @@ export default function Session() {
       .catch(e => { setError(e.message); setPhase('error'); });
   }, [day, userId, navigate]);
 
-  const handleConfidenceSelect = (level) => {
-    setConfidenceLevel(level);
-    setTimeout(() => setPhase('challenge'), 400);
-  };
-
   const handleSubmit = async () => {
     if (wordCount < 8) return;
     setPhase('evaluating');
@@ -164,13 +233,11 @@ export default function Session() {
         userResponse: response,
       });
       setResult(payload);
-
       if (confidenceLevel) {
         const predicted = confidenceLevel * 20;
         const cals = [...historicalCalibrations, { predicted, actual: payload.evaluation.score, day: Number(day) }];
         localStorage.setItem('skillforge:calibrations', JSON.stringify(cals.slice(-20)));
       }
-
       setPhase('result');
     } catch (e) {
       setError(e.message);
@@ -181,7 +248,7 @@ export default function Session() {
   // ── LOADING ──────────────────────────────────────────────────────────────
   if (phase === 'loading') return (
     <div className="mx-auto max-w-4xl px-6 py-14">
-      <AgentThinking isVisible messages={["Loading today's mission…", 'Generating challenge…', 'Calibrating difficulty…']} />
+      <AgentThinking isVisible messages={["Loading today's mission…", "Generating your challenge…", "Calibrating difficulty…"]} />
     </div>
   );
 
@@ -195,13 +262,11 @@ export default function Session() {
       <div className="text-center mb-2">
         <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Session {day}</p>
         <h1 className="text-2xl font-black text-slate-100 mt-1">Before You Begin</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          The agent tracks your metacognitive accuracy alongside performance
-        </p>
+        <p className="text-sm text-slate-500 mt-1">The agent tracks your metacognitive accuracy</p>
       </div>
-      <ConfidenceSelector onSelect={handleConfidenceSelect} selected={confidenceLevel} />
+      <ConfidenceSelector onSelect={(level) => { setConfidenceLevel(level); setTimeout(() => setPhase(data?.challenge?.warmupQuestion ? 'warmup' : 'challenge'), 400); }} selected={confidenceLevel} />
       <button
-        onClick={() => setPhase('challenge')}
+        onClick={() => setPhase(data?.challenge?.warmupQuestion ? 'warmup' : 'challenge')}
         className="w-full py-3 rounded-xl text-xs text-slate-600 border border-slate-800 hover:text-slate-400 hover:border-slate-700 transition-all"
       >
         Skip confidence check →
@@ -209,22 +274,35 @@ export default function Session() {
     </div>
   );
 
+  // ── MCQ WARM-UP ──────────────────────────────────────────────────────────
+  if (phase === 'warmup' && data) return (
+    <div className="mx-auto max-w-2xl px-6 py-8 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black">Session {day}</p>
+          <p className="text-base font-black text-slate-100">{data.planDay.skillName} — {data.planDay.topic}</p>
+        </div>
+        <button onClick={() => navigate('/dashboard')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+          ← Dashboard
+        </button>
+      </div>
+      <WarmupMCQ
+        question={data.challenge.warmupQuestion}
+        onDone={() => setPhase('challenge')}
+      />
+    </div>
+  );
+
   // ── EVALUATING ──────────────────────────────────────────────────────────
   if (phase === 'evaluating') return (
     <div className="mx-auto max-w-4xl px-6 py-14">
-      <AgentThinking
-        isVisible
-        messages={['Evaluating your response…', 'Checking reasoning quality…', 'Analysing coverage of criteria…', 'Calibrating final score…', 'Almost done…']}
-      />
+      <AgentThinking isVisible messages={['Evaluating your response…', 'Checking reasoning quality…', 'Analysing criteria coverage…', 'Calibrating score…', 'Almost done…']} />
     </div>
   );
 
   // ── CHALLENGE ────────────────────────────────────────────────────────────
   if (phase === 'challenge' && data) {
-    const typeColors = {
-      coding: '#6366F1', conceptual: '#8B5CF6', design: '#06B6D4',
-      scenario: '#F59E0B', practical: '#10B981', implementation: '#3B82F6', query: '#EC4899',
-    };
+    const typeColors = { coding: '#6366F1', conceptual: '#8B5CF6', design: '#06B6D4', scenario: '#F59E0B', practical: '#10B981', implementation: '#3B82F6', review: '#F97316' };
     const typeColor = typeColors[data.challenge.type] || '#6366F1';
     const isAI = data.challenge.source === 'llm';
 
@@ -233,52 +311,30 @@ export default function Session() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">
-              Day {data.planDay.day}
-            </span>
-            <span className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-semibold">
-              {data.planDay.skillName}
-            </span>
-            <span
-              className="text-xs px-3 py-1 rounded-full font-semibold capitalize"
-              style={{ backgroundColor: `${typeColor}15`, color: typeColor, border: `1px solid ${typeColor}30` }}
-            >
+            <span className="text-xs px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">Day {data.planDay.day}</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-semibold">{data.planDay.skillName}</span>
+            <span className="text-xs px-3 py-1 rounded-full font-semibold capitalize" style={{ backgroundColor: `${typeColor}15`, color: typeColor, border: `1px solid ${typeColor}30` }}>
               {data.challenge.type}
             </span>
-            {isAI && (
-              <span className="text-xs px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30 font-semibold">
-                🤖 AI-Generated
-              </span>
-            )}
+            {isAI && <span className="text-xs px-2.5 py-1 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/30 font-semibold">🤖 AI-Generated</span>}
           </div>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="text-xs text-slate-600 hover:text-slate-400 transition-colors"
-          >
-            ← Dashboard
-          </button>
+          <button onClick={() => navigate('/dashboard')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">← Dashboard</button>
         </div>
 
         {/* Challenge card */}
         <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-6">
           <h1 className="text-2xl font-black text-slate-100 mb-4">{data.challenge.title}</h1>
           <p className="text-slate-300 leading-relaxed whitespace-pre-wrap">{data.challenge.description}</p>
-
           <div className="mt-4 flex flex-wrap gap-1.5">
             {(data.challenge.evaluation_criteria || []).slice(0, 5).map(c => (
-              <span key={c} className="text-[9px] px-2 py-0.5 rounded-full border border-slate-700 text-slate-500 bg-slate-800/50 uppercase tracking-wide">
-                {c}
-              </span>
+              <span key={c} className="text-[9px] px-2 py-0.5 rounded-full border border-slate-700 text-slate-500 bg-slate-800/50 uppercase tracking-wide">{c}</span>
             ))}
           </div>
         </div>
 
         {/* Hints */}
         <div className="rounded-xl border border-slate-800 bg-slate-900/50">
-          <button
-            onClick={() => setShowHints(h => !h)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm text-indigo-300 font-semibold"
-          >
+          <button onClick={() => setShowHints(h => !h)} className="w-full flex items-center justify-between px-4 py-3 text-sm text-indigo-300 font-semibold">
             <span>💡 Hints ({data.challenge.hints?.length || 0})</span>
             <span>{showHints ? '▲' : '▼'}</span>
           </button>
@@ -306,7 +362,7 @@ export default function Session() {
             value={response}
             onChange={e => setResponse(e.target.value)}
             className="w-full min-h-[220px] rounded-xl border border-slate-700 bg-[#060B14] p-4 text-slate-100 text-sm focus:border-indigo-500 focus:outline-none resize-y transition-colors"
-            placeholder="Write your answer here. Include reasoning, examples, and explanations for full marks."
+            placeholder="Write your answer here. Include reasoning, examples, and specific details for full marks."
           />
           <div className="flex items-center justify-between">
             {error && <p className="text-xs text-red-400">{error}</p>}
@@ -385,8 +441,7 @@ export default function Session() {
             <ul className="space-y-2">
               {(evaluation.strengths || []).map((item, i) => (
                 <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                  <span className="text-emerald-500 mt-0.5 flex-shrink-0">•</span>
-                  {item}
+                  <span className="text-emerald-500 mt-0.5 flex-shrink-0">•</span>{item}
                 </li>
               ))}
             </ul>
@@ -396,15 +451,14 @@ export default function Session() {
             <ul className="space-y-2">
               {(evaluation.weaknesses || []).map((item, i) => (
                 <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>
-                  {item}
+                  <span className="text-red-500 mt-0.5 flex-shrink-0">•</span>{item}
                 </li>
               ))}
             </ul>
           </div>
         </div>
 
-        {/* Confidence calibration result */}
+        {/* Confidence calibration */}
         {confidenceLevel && (
           <ConfidenceResult
             confidenceLevel={confidenceLevel}
@@ -415,10 +469,7 @@ export default function Session() {
 
         {/* Model solution */}
         <div className="rounded-xl border border-slate-700 bg-slate-900/60">
-          <button
-            onClick={() => setShowSolution(s => !s)}
-            className="w-full flex items-center justify-between px-4 py-3 text-sm text-indigo-300 font-semibold"
-          >
+          <button onClick={() => setShowSolution(s => !s)} className="w-full flex items-center justify-between px-4 py-3 text-sm text-indigo-300 font-semibold">
             <span>💡 View Model Solution</span>
             <span>{showSolution ? '▲' : '▼'}</span>
           </button>
@@ -429,16 +480,14 @@ export default function Session() {
           )}
         </div>
 
-        {/* Agent adaptation note */}
+        {/* Agent adaptation */}
         {newAdaptations?.length > 0 && (
           <div className="rounded-2xl border border-amber-500/30 bg-amber-500/8 p-5">
             <div className="flex items-center gap-2 mb-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <p className="text-xs font-black text-amber-400 uppercase tracking-widest">Agent Updated Your Plan</p>
             </div>
-            <p className="text-sm text-amber-200/80 leading-relaxed">
-              {newAdaptations[newAdaptations.length - 1]}
-            </p>
+            <p className="text-sm text-amber-200/80 leading-relaxed">{newAdaptations[newAdaptations.length - 1]}</p>
           </div>
         )}
 

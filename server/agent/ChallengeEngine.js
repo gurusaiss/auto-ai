@@ -10,7 +10,7 @@ class ChallengeEngine {
     this.challenges = JSON.parse(readFileSync(join(__dirname, '../knowledge/challenges.json'), 'utf-8'));
   }
 
-  // ── Gemini-powered challenge generation ─────────────────────────────────
+  // ── Gemini-powered: domain-specific challenge + MCQ warm-up ─────────────
   async generateWithLLM(planDay, session) {
     const goal = session?.goal?.goalText || planDay.skillName;
     const domain = session?.goal?.domainLabel || planDay.skillId;
@@ -19,37 +19,56 @@ class ChallengeEngine {
     const sessionType = planDay.sessionType || 'practice';
     const recentWeaknesses = session?.sessions?.slice(-3).flatMap(s => s.weaknesses || []).slice(0, 3) || [];
 
-    const prompt = `You are creating a learning challenge for someone who wants to: "${goal}"
+    const prompt = `You are creating a learning session for someone who wants to: "${goal}"
 Domain: ${domain}
 Current skill: ${skillName}
 Today's topic: ${topic}
 Session type: ${sessionType}
-${recentWeaknesses.length ? `Recent weak areas to address: ${recentWeaknesses.join(', ')}` : ''}
+${recentWeaknesses.length ? `Recent weak spots to address: ${recentWeaknesses.join(', ')}` : ''}
 
 Return ONLY valid JSON:
 {
   "id": "ch_${planDay.skillId}_day${planDay.day}",
-  "title": "Specific, engaging challenge title",
-  "description": "Detailed, domain-specific challenge description (2-3 sentences). Be concrete — name real tools, techniques, or scenarios from ${domain}.",
+  "title": "Specific, engaging challenge title about ${topic}",
+  "description": "2-3 sentence real-world scenario. Name actual ${domain} tools/techniques/materials. Example: 'You are working on a client's formal dress and need to apply darts to the bodice...'",
   "type": "${sessionType}",
-  "hints": ["Hint 1 specific to ${topic}", "Hint 2", "Hint 3"],
-  "evaluation_criteria": ["criterion1", "criterion2", "criterion3", "criterion4"],
-  "model_solution": "A strong response would demonstrate... (2-3 sentences on what good looks like)",
-  "estimated_minutes": 25
+  "hints": [
+    "Domain-specific hint 1 about ${topic}",
+    "Domain-specific hint 2",
+    "Domain-specific hint 3"
+  ],
+  "evaluation_criteria": [
+    "specific criterion 1 for ${topic}",
+    "specific criterion 2",
+    "specific criterion 3",
+    "specific criterion 4"
+  ],
+  "model_solution": "2-3 sentences describing what an expert ${domain} response looks like for ${topic}.",
+  "warmupQuestion": {
+    "question": "A specific MCQ question about ${topic} in ${domain}?",
+    "options": [
+      "A) correct or plausible option",
+      "B) plausible but wrong option",
+      "C) plausible but wrong option",
+      "D) clearly wrong option"
+    ],
+    "correct": "A) correct or plausible option",
+    "explanation": "Why this answer is correct."
+  }
 }
 
-Rules:
-- Challenge must be 100% specific to "${topic}" in "${domain}" — NOT generic
-- Description should describe a real scenario they'd face (e.g. for tailoring: "You have a client who needs an A-line skirt with a 14-inch zipper...")
-- Evaluation criteria must be measurable and domain-specific
-- Hints should guide without giving the answer away`;
+IMPORTANT:
+- Everything must be 100% specific to "${domain}" — NOT generic
+- Use real ${domain} terminology (e.g. for tailoring: seam ripper, grain line, basting stitch, ease)
+- The warmupQuestion must have EXACTLY 4 options labeled A) B) C) D)
+- No generic phrases like "core concept" or "fundamental principle"`;
 
     try {
       const result = await GeminiService.generateJSON(prompt,
-        `You are an expert ${domain} instructor creating practical challenges. Return only valid JSON.`);
+        `You are an expert ${domain} instructor. Generate domain-specific, practical content. Return only valid JSON.`);
 
       if (result?.title && result?.description) {
-        console.log(`[ChallengeEngine] Gemini generated challenge for Day ${planDay.day}: "${result.title}"`);
+        console.log(`[ChallengeEngine] Gemini challenge for Day ${planDay.day}: "${result.title}"`);
         return { ...result, source: 'llm' };
       }
     } catch (err) {
@@ -68,16 +87,16 @@ Rules:
       ...challenge,
       source: 'static',
       title: `${challenge.title}${roleContext}`,
-      description: `${challenge.description} Focus especially on ${planDay.topic}.${weakSignal ? ` Recent weak spots to address: ${weakSignal}.` : ''}`,
+      description: `${challenge.description} Focus especially on ${planDay.topic}.${weakSignal ? ` Recent weak spots: ${weakSignal}.` : ''}`,
       hints: [
         ...(challenge.hints || []),
         `Tie your answer back to ${planDay.topic}.`,
         session?.goal?.profile?.detectedTools?.length
           ? `Use examples with ${session.goal.profile.detectedTools.slice(0, 2).join(' and ')} if relevant.`
-          : 'Use one practical, real-world example.'
+          : 'Use one practical, real-world example.',
       ].slice(0, 5),
-      evaluation_criteria: [...new Set([...(challenge.evaluation_criteria || []), planDay.topic, planDay.skillName.toLowerCase()])],
-      model_solution: `${challenge.model_solution} A strong response should feel relevant to ${session?.goal?.profile?.targetRole || planDay.skillName}.`
+      evaluation_criteria: [...new Set([...(challenge.evaluation_criteria || []), planDay.topic, (planDay.skillName || '').toLowerCase()])],
+      model_solution: `${challenge.model_solution} A strong response should feel relevant to ${session?.goal?.profile?.targetRole || planDay.skillName}.`,
     };
   }
 
@@ -87,12 +106,11 @@ Rules:
     const goal = session?.goal?.goalText || skillName;
     const role = session?.goal?.profile?.targetRole;
     const roleContext = role ? ` for your ${role} path` : '';
+    const domain = session?.goal?.domainLabel || skillName;
     const sessionType = planDay.sessionType || 'practice';
 
     const recentWeaknesses = session?.sessions
-      ?.slice(-3)
-      .flatMap((s) => s.weaknesses || [])
-      .slice(0, 2) || [];
+      ?.slice(-3).flatMap((s) => s.weaknesses || []).slice(0, 2) || [];
 
     const challengeTemplates = {
       concept: {
@@ -100,34 +118,33 @@ Rules:
         description: `In your own words, explain "${topic}" and how it is used in ${skillName}. Cover: what it is, why it matters, and a concrete real-world scenario where you would apply it.`,
         hints: [
           `Define "${topic}" clearly before diving into examples.`,
-          `Think of a real project or scenario where "${topic}" comes up.`,
-          `Connect "${topic}" back to the bigger picture of ${skillName}.`
-        ]
+          `Think of a real ${domain} scenario where "${topic}" comes up.`,
+          `Connect "${topic}" back to the bigger picture of ${skillName}.`,
+        ],
       },
       practice: {
         title: `Apply ${topic} in a ${skillName} project${roleContext}`,
-        description: `You are working on a project that needs ${skillName}. Specifically, you need to implement or handle "${topic}". Describe your step-by-step approach, the decisions you make, and why.`,
+        description: `You are working on a ${domain} project that requires ${skillName}. Specifically, you need to handle "${topic}". Describe your step-by-step approach.`,
         hints: [
           `Start by identifying what "${topic}" requires in this context.`,
-          `Walk through your solution step-by-step — don't skip reasoning.`,
-          `Mention any edge cases or pitfalls to watch out for.`
-        ]
+          `Walk through your approach step-by-step.`,
+          `Mention any common mistakes to avoid.`,
+        ],
       },
       review: {
         title: `Review & reinforce ${topic}${roleContext}`,
-        description: `You've been working on ${skillName}. Review your understanding of "${topic}" by explaining it to a junior learner. What are the most common mistakes? How do you avoid them?`,
+        description: `Review your understanding of "${topic}" in ${skillName} by explaining it clearly. What are the most common mistakes? How do you avoid them?`,
         hints: [
-          `Think about what confused you most when first learning "${topic}".`,
-          `Give at least one "do this, not that" example.`,
-          `Explain the mental model that makes "${topic}" click.`
-        ]
-      }
+          `Think about what confused you when first learning "${topic}".`,
+          `Give at least one practical do/don't example.`,
+          `Explain the mental model that makes "${topic}" click.`,
+        ],
+      },
     };
 
     const template = challengeTemplates[sessionType] || challengeTemplates.practice;
-
     const weaknessHint = recentWeaknesses.length
-      ? `Pay special attention to these recent weak spots: ${recentWeaknesses.join(', ')}.`
+      ? `Pay special attention to: ${recentWeaknesses.join(', ')}.`
       : null;
 
     return {
@@ -137,29 +154,26 @@ Rules:
       source: 'dynamic',
       title: template.title,
       description: `${template.description}${weaknessHint ? ` ${weaknessHint}` : ''}`,
-      hints: [
-        ...template.hints,
-        ...(weaknessHint ? [weaknessHint] : [])
-      ].slice(0, 4),
+      hints: [...template.hints, ...(weaknessHint ? [weaknessHint] : [])].slice(0, 4),
       evaluation_criteria: [
         `understanding of ${topic}`,
         `practical application in ${skillName}`,
         'clear reasoning and examples',
-        'connection to real use cases'
+        'connection to real use cases',
       ],
-      model_solution: `A strong response defines "${topic}", shows how it applies in ${skillName} with a concrete example, and explains the reasoning — not just the steps.`
+      model_solution: `A strong response defines "${topic}", shows how it applies in ${skillName} with a concrete example, and explains the reasoning clearly.`,
     };
   }
 
-  // ── Main entry — tries Gemini first, falls back to static then dynamic ───
+  // ── Main entry ───────────────────────────────────────────────────────────
   async getChallengeForDay(planDay, session = null) {
-    // Try Gemini for domain-specific challenges
+    // 1. Try Gemini for domain-specific challenge
     if (GeminiService.isEnabled()) {
       const llmChallenge = await this.generateWithLLM(planDay, session);
       if (llmChallenge) return llmChallenge;
     }
 
-    // Try static knowledge bank
+    // 2. Try static knowledge bank
     const options = this.challenges[planDay.skillId] || [];
     const challenge = options.find((entry) => entry.id === planDay.challengeId)
       || options.find((entry) => {
@@ -172,6 +186,7 @@ Rules:
       return this.personalizeChallenge(challenge, planDay, session);
     }
 
+    // 3. Dynamic fallback
     return this.buildDynamicChallenge(planDay, session);
   }
 }

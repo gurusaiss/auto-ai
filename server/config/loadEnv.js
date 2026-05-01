@@ -3,26 +3,23 @@ import { join } from 'path';
 
 function parseEnvFile(filePath) {
   const content = readFileSync(filePath, 'utf-8');
-  const lines = content.split(/\r?\n/);
-
-  for (const line of lines) {
+  for (const line of content.split(/\r?\n/)) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) {
-      continue;
-    }
+    if (!trimmed || trimmed.startsWith('#')) continue;
 
-    const separatorIndex = trimmed.indexOf('=');
-    if (separatorIndex === -1) {
-      continue;
-    }
+    const sep = trimmed.indexOf('=');
+    if (sep === -1) continue;
 
-    const key = trimmed.slice(0, separatorIndex).trim();
-    let value = trimmed.slice(separatorIndex + 1).trim();
+    const key = trimmed.slice(0, sep).trim();
+    let value = trimmed.slice(sep + 1).trim();
 
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    // Strip surrounding quotes
+    if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1);
     }
 
+    // Don't overwrite already-set env vars
     if (!(key in process.env)) {
       process.env[key] = value;
     }
@@ -30,14 +27,10 @@ function parseEnvFile(filePath) {
 }
 
 export function loadEnv(baseDir) {
-  const candidates = [
-    join(baseDir, '.env'),
-    join(baseDir, 'server', '.env')
-  ];
-
-  candidates.forEach((filePath) => {
-    if (existsSync(filePath)) {
-      parseEnvFile(filePath);
-    }
-  });
+  // Single .env at the project root — that's all we need
+  const envPath = join(baseDir, '.env');
+  if (existsSync(envPath)) {
+    parseEnvFile(envPath);
+    console.log(`[env] Loaded ${envPath}`);
+  }
 }

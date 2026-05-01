@@ -13,9 +13,8 @@ import reportRouter from './routes/report.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataPath = join(__dirname, 'data');
 
-// Load .env FIRST before anything else reads process.env
+// Load .env from project root (one file, that's all)
 loadEnv(join(__dirname, '..'));
-loadEnv(__dirname); // also load server/.env
 
 if (!existsSync(dataPath)) {
   mkdirSync(dataPath, { recursive: true });

@@ -11,56 +11,86 @@ class QuizGenerator {
     this.questions = JSON.parse(readFileSync(questionsPath, 'utf-8'));
   }
 
-  // ── Gemini-powered question generation ──────────────────────────────────
+  // ── Gemini-powered: 10 domain-specific MCQ questions ────────────────────
   async generateWithLLM(skillTree) {
     const { profile, skills, domain } = skillTree;
     const domainLabel = skillTree.domainName || domain;
-    const skillList = skills.slice(0, 6).map(s =>
-      `- ${s.name}: ${(s.topics || []).slice(0, 4).join(', ')}`
+    const goalText = profile?.rawGoal || domainLabel;
+    const skillList = skills.slice(0, 6).map((s, i) =>
+      `${i + 1}. ${s.name} (topics: ${(s.topics || []).slice(0, 4).join(', ')})`
     ).join('\n');
 
-    const prompt = `You are an expert assessment designer for "${domainLabel}".
+    const prompt = `You are an expert assessment designer. Create a diagnostic quiz for someone who wants to: "${goalText}"
 
-Goal: "${profile?.rawGoal || domainLabel}"
 Domain: ${domainLabel}
 Learner level: ${profile?.learnerLevel || 'beginner'}
 Skills to assess:
 ${skillList}
 
-Generate a diagnostic quiz with exactly 10 questions. Return ONLY valid JSON:
+Generate exactly 10 multiple-choice questions that directly test knowledge of "${domainLabel}".
+Questions must use REAL concepts from ${domainLabel} — not generic learning concepts.
+
+Example for tailoring: ask about seam allowance, fabric grain, dart placement, stitch types, pattern pieces.
+Example for cooking: ask about knife cuts, mise en place, Maillard reaction, sauté vs braise.
+Example for music: ask about time signatures, chord progressions, intervals, dynamics.
+
+Return ONLY valid JSON — no markdown, no explanation:
 {
   "questions": [
     {
-      "id": "q_skill_id_1",
-      "skillId": "exact_skill_id_from_list",
+      "id": "q1",
+      "skillId": "exact_skill_id_from_list_above",
       "skillName": "Exact Skill Name",
-      "question": "Full question text?",
+      "question": "What is the standard seam allowance used in most commercial sewing patterns?",
       "type": "multiple_choice",
-      "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
-      "correct": "A) option1",
-      "explanation": "Why this is correct.",
-      "key_concepts": ["concept1", "concept2"],
-      "score_keywords": ["keyword1", "keyword2"],
-      "sample_good_answer": ""
+      "options": [
+        "A) 1/4 inch (6mm)",
+        "B) 5/8 inch (15mm)",
+        "C) 1 inch (25mm)",
+        "D) 3/8 inch (10mm)"
+      ],
+      "correct": "B) 5/8 inch (15mm)",
+      "explanation": "5/8 inch is the standard seam allowance in most commercial patterns because it allows enough fabric to press seams open cleanly.",
+      "key_concepts": ["seam allowance", "pattern making"],
+      "score_keywords": ["5/8", "15mm", "standard"]
     }
   ]
 }
 
 Rules:
-- Exactly 5 multiple_choice + 5 open_ended questions (alternate: MCQ, open, MCQ, open...)
-- 2 questions per skill (use the exact skillId from the list above)
-- For open_ended: options=[], correct="" — use score_keywords and sample_good_answer instead
-- Questions must be 100% domain-specific (real ${domainLabel} concepts, NOT generic)
-- Multiple choice must have exactly 4 options labeled A) B) C) D)
-- Difficulty appropriate for ${profile?.learnerLevel || 'beginner'} level`;
+- ALL 10 questions must be type "multiple_choice"
+- Each question must have EXACTLY 4 options labeled A) B) C) D)
+- "correct" must exactly match one of the 4 options
+- Distribute 2 questions per skill (use the exact skillId from the list above)
+- Questions must test REAL ${domainLabel} knowledge — no generic questions
+- Difficulty: appropriate for ${profile?.learnerLevel || 'beginner'} level
+- Each question must be clearly different (no repeats)`;
 
     try {
       const result = await GeminiService.generateJSON(prompt,
-        `You are an expert quiz designer for ${domainLabel}. Return only valid JSON with exactly 10 domain-specific questions.`);
+        `You are an expert quiz designer for ${domainLabel}. Return ONLY valid JSON. Every question must be multiple_choice with 4 options A) B) C) D). NO open-ended questions.`);
 
       if (result?.questions?.length >= 8) {
-        console.log(`[QuizGenerator] Gemini generated ${result.questions.length} questions for "${domainLabel}"`);
-        return result.questions;
+        // Force all to multiple_choice and validate
+        const validated = result.questions
+          .filter(q => q.question && q.options?.length === 4 && q.correct)
+          .map((q, i) => ({
+            ...q,
+            id: q.id || `q${i + 1}`,
+            type: 'multiple_choice',
+            source: 'llm',
+            options: q.options.map(o => {
+              // Ensure options start with A) B) C) D)
+              if (/^[A-D]\)/.test(o)) return o;
+              const label = ['A', 'B', 'C', 'D'][q.options.indexOf(o)];
+              return `${label}) ${o}`;
+            }),
+          }));
+
+        if (validated.length >= 8) {
+          console.log(`[QuizGenerator] Gemini generated ${validated.length} MCQ questions for "${domainLabel}"`);
+          return validated;
+        }
       }
     } catch (err) {
       console.error('[QuizGenerator] Gemini error:', err.message);
@@ -68,126 +98,92 @@ Rules:
     return null;
   }
 
-  scoreQuestionRelevance(question, skill, profile) {
-    const searchableText = [
-      question.question,
-      ...(question.key_concepts || []),
-      ...(question.score_keywords || [])
-    ].join(' ').toLowerCase();
-
-    let score = 0;
-    for (const keyword of profile?.focusKeywords || []) {
-      if (searchableText.includes(keyword)) {
-        score += keyword.length > 5 ? 3 : 2;
-      }
-    }
-
-    for (const tool of profile?.detectedTools || []) {
-      if (searchableText.includes(tool)) {
-        score += 4;
-      }
-    }
-
-    if (question.type === 'open_ended') {
-      score += 1;
-    }
-
-    if ((skill.topics || []).some((topic) => searchableText.includes(topic.toLowerCase()))) {
-      score += 2;
-    }
-
-    return score;
-  }
-
-  personalizeQuestion(question, skill, profile, index) {
-    const roleContext = profile?.targetRole ? ` for your ${profile.targetRole} goal` : '';
-    const personalizedPrompt = question.type === 'open_ended'
-      ? `${question.question} Answer${roleContext} with one practical example.`
-      : question.question;
+  // ── Build domain-specific MCQ fallback (no Gemini) ──────────────────────
+  buildFallbackMCQ(skill, topicIndex = 0) {
+    const topics = skill.topics || [];
+    const t = topics[topicIndex % topics.length] || skill.name;
+    const t2 = topics[(topicIndex + 1) % Math.max(topics.length, 1)] || 'practical application';
+    const t3 = topics[(topicIndex + 2) % Math.max(topics.length, 1)] || 'fundamentals';
+    const t4 = topics[(topicIndex + 3) % Math.max(topics.length, 1)] || 'advanced techniques';
 
     return {
-      ...question,
-      id: `${question.id}_${skill.id}_${index + 1}`,
-      question: personalizedPrompt,
+      id: `q_${skill.id}_mcq_${topicIndex}`,
       skillId: skill.id,
       skillName: skill.name,
-      targetRole: profile?.targetRole || null,
-      personalizationHint: skill.reason || `Important for ${skill.name}.`,
-      source: 'static'
+      question: `Which of the following best describes "${t}" in the context of ${skill.name}?`,
+      type: 'multiple_choice',
+      options: [
+        `A) It is the primary concept that defines ${t} in ${skill.name}`,
+        `B) It relates to ${t2} and is foundational to mastering ${skill.name}`,
+        `C) It is primarily used in advanced ${t3} workflows`,
+        `D) It is an optional enhancement for ${t4}`,
+      ],
+      correct: `A) It is the primary concept that defines ${t} in ${skill.name}`,
+      explanation: `"${t}" is fundamental to ${skill.name} and is one of the first concepts a learner must master.`,
+      key_concepts: [t, skill.name],
+      score_keywords: [t],
+      source: 'fallback',
     };
   }
 
-  buildFallbackQuestions(skill, profile) {
-    const roleContext = profile?.targetRole ? ` as a ${profile.targetRole}` : '';
-    const topics = skill.topics || [];
-    const t0 = topics[0] || skill.name;
-    const t1 = topics[1] || 'practical techniques';
-    const t2 = topics[2] || 'real-world usage';
-    const t3 = topics[3] || 'best practices';
+  // ── Try static knowledge bank, filter to MCQ only ───────────────────────
+  getStaticMCQ(skill, profile) {
+    const skillQuestions = this.questions[skill.id];
+    if (!skillQuestions) return [];
 
-    return [
-      {
-        id: `q_${skill.id}_fallback_1`,
+    const levelQuestions = skillQuestions[skill.level] || skillQuestions['beginner'] || [];
+    return levelQuestions
+      .filter(q => q.type === 'multiple_choice')
+      .sort((a, b) => this._scoreRelevance(b, skill, profile) - this._scoreRelevance(a, skill, profile))
+      .slice(0, 2)
+      .map((q, i) => ({
+        ...q,
+        id: `${q.id}_${skill.id}_${i + 1}`,
         skillId: skill.id,
         skillName: skill.name,
-        question: `Explain what "${t0}" means in the context of ${skill.name}${roleContext}. Why is it important, and give one practical example of how you would use it.`,
-        type: 'open_ended',
-        options: [],
-        correct: '',
-        explanation: `"${t0}" is a core concept in ${skill.name}. A good answer defines it, explains its importance, and gives a concrete example.`,
-        key_concepts: [t0, skill.name],
-        score_keywords: topics,
-        sample_good_answer: `"${t0}" in ${skill.name} refers to... It matters because... A practical example is when you...`,
-        source: 'fallback'
-      },
-      {
-        id: `q_${skill.id}_fallback_2`,
-        skillId: skill.id,
-        skillName: skill.name,
-        question: `You are working on a project that requires ${skill.name}${roleContext}. You need to handle "${t1}". Walk through your approach, and explain how "${t2}" and "${t3}" factor into your decision.`,
-        type: 'open_ended',
-        options: [],
-        correct: '',
-        explanation: `This tests practical problem-solving in ${skill.name} — specifically whether you can connect ${t1}, ${t2}, and ${t3} in a real scenario.`,
-        key_concepts: [t1, t2, t3],
-        score_keywords: topics,
-        sample_good_answer: `To handle "${t1}", I would first... I would then apply "${t2}" by... and keep "${t3}" in mind by...`,
-        source: 'fallback'
-      }
-    ];
+        source: 'static',
+      }));
   }
 
-  // ── Main entry — tries Gemini first, falls back to static/dynamic ────────
+  _scoreRelevance(question, skill, profile) {
+    const text = [question.question, ...(question.key_concepts || [])].join(' ').toLowerCase();
+    let score = 0;
+    for (const kw of profile?.focusKeywords || []) {
+      if (text.includes(kw)) score += kw.length > 5 ? 3 : 2;
+    }
+    for (const tool of profile?.detectedTools || []) {
+      if (text.includes(tool)) score += 4;
+    }
+    return score;
+  }
+
+  // ── Main entry — Gemini first, then static, then fallback ────────────────
   async generate(skillTree) {
     const profile = skillTree.profile || {};
 
-    // Try Gemini for domain-specific questions
+    // 1. Try Gemini for domain-specific MCQ questions
     if (GeminiService.isEnabled()) {
       const llmQuestions = await this.generateWithLLM(skillTree);
       if (llmQuestions && llmQuestions.length >= 8) {
-        return llmQuestions.map(q => ({ ...q, source: q.source || 'llm' }));
+        return llmQuestions;
       }
     }
 
-    // Rule-based fallback
+    // 2. Rule-based fallback — MCQ only from static bank + generated
     const diagnosticQuestions = [];
 
     for (const skill of skillTree.skills) {
-      const skillQuestions = this.questions[skill.id];
-
-      if (skillQuestions && skillQuestions[skill.level]) {
-        const levelQuestions = [...skillQuestions[skill.level]];
-        const selectedQuestions = levelQuestions
-          .sort((left, right) => this.scoreQuestionRelevance(right, skill, profile) - this.scoreQuestionRelevance(left, skill, profile))
-          .slice(0, 2);
-
-        selectedQuestions.forEach((question, index) => {
-          diagnosticQuestions.push(this.personalizeQuestion(question, skill, profile, index));
-        });
+      // Try static MCQ questions first
+      const staticMCQ = this.getStaticMCQ(skill, profile);
+      if (staticMCQ.length >= 2) {
+        diagnosticQuestions.push(...staticMCQ.slice(0, 2));
+      } else if (staticMCQ.length === 1) {
+        diagnosticQuestions.push(staticMCQ[0]);
+        diagnosticQuestions.push(this.buildFallbackMCQ(skill, 1));
       } else {
-        this.buildFallbackQuestions(skill, profile).forEach((question) => {
-          diagnosticQuestions.push(question);
-        });
+        // No static MCQ — use generated MCQ
+        diagnosticQuestions.push(this.buildFallbackMCQ(skill, 0));
+        diagnosticQuestions.push(this.buildFallbackMCQ(skill, 1));
       }
     }
 
