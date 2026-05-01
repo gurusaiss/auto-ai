@@ -31,9 +31,14 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Data files (session data)
+# Data files (session data — only keep demo files)
 server/data/*.json
 !server/data/demo_skillforge_2024.json
+!server/data/demo-react-fullstack.json
+
+# IDE / AI tool configs
+.kiro/
+.codex/
 
 # Test coverage
 coverage/

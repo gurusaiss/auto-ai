@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.js$|^d\")",
+      "Bash(node -e ' *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(netstat -ano)",
+      "Bash(findstr :3001)",
+      "Bash(taskkill /PID 10560 /F)",
+      "PowerShell(Stop-Process -Id 10560 -Force)",
+      "Bash(wmic logicaldisk *)",
+      "Bash(npm cache *)",
+      "Bash(timeout 15 npm run dev:client)",
+      "Bash(timeout 20 npx esbuild client/src/pages/Dashboard.jsx --bundle=false)",
+      "Bash(timeout 20 npx esbuild client/src/pages/Report.jsx --bundle=false)",
+      "Bash(curl -s http://localhost:3001/api/health)",
+      "Bash(curl -s http://localhost:3001/api/dashboard/demo-react-fullstack)",
+      "Bash(curl -s http://localhost:3001/)",
+      "Bash(curl -s http://localhost:3001/api/goal)",
+      "Bash(curl -s http://localhost:3001/api/session/dashboard/demo-react-fullstack)"
+    ]
+  }
+}
