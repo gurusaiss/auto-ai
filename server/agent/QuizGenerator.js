@@ -98,28 +98,102 @@ Rules:
     return null;
   }
 
-  // ── Build domain-specific MCQ fallback (no Gemini) ──────────────────────
+  // ── Varied fallback MCQ templates — avoid repeating same pattern ────────
   buildFallbackMCQ(skill, topicIndex = 0) {
     const topics = skill.topics || [];
-    const t = topics[topicIndex % topics.length] || skill.name;
+    const t  = topics[topicIndex % topics.length] || skill.name;
     const t2 = topics[(topicIndex + 1) % Math.max(topics.length, 1)] || 'practical application';
     const t3 = topics[(topicIndex + 2) % Math.max(topics.length, 1)] || 'fundamentals';
     const t4 = topics[(topicIndex + 3) % Math.max(topics.length, 1)] || 'advanced techniques';
 
+    // Rotate through 6 different question formats so the quiz feels varied
+    const templateId = topicIndex % 6;
+
+    const templates = [
+      // 0 — definition / role
+      {
+        question: `What is the primary purpose of "${t}" when learning ${skill.name}?`,
+        options: [
+          `A) It establishes the foundational knowledge needed for ${skill.name}`,
+          `B) It is only used in advanced ${t3} scenarios`,
+          `C) It replaces the need to understand ${t2}`,
+          `D) It is an optional concept that can be skipped`,
+        ],
+        correct: `A) It establishes the foundational knowledge needed for ${skill.name}`,
+        explanation: `"${t}" is a core element of ${skill.name} that learners encounter early and build upon throughout their training.`,
+      },
+      // 1 — sequence / when
+      {
+        question: `At which stage of learning ${skill.name} is "${t}" most important?`,
+        options: [
+          `A) At the very beginning — it sets the foundation for everything else`,
+          `B) Only after mastering ${t4}`,
+          `C) It is equally important at all stages and has no particular starting point`,
+          `D) Only when preparing for ${t3}`,
+        ],
+        correct: `A) At the very beginning — it sets the foundation for everything else`,
+        explanation: `"${t}" is introduced early in ${skill.name} because it underpins more advanced concepts like ${t2}.`,
+      },
+      // 2 — true/false style
+      {
+        question: `Which statement about "${t}" in ${skill.name} is CORRECT?`,
+        options: [
+          `A) "${t}" must be understood before progressing to ${t2}`,
+          `B) "${t}" is only relevant to professionals — beginners can skip it`,
+          `C) "${t}" and "${t3}" are interchangeable concepts`,
+          `D) "${t}" is a recent innovation and not widely taught`,
+        ],
+        correct: `A) "${t}" must be understood before progressing to ${t2}`,
+        explanation: `Understanding "${t}" is a prerequisite in ${skill.name} — it directly enables the learner to work with ${t2} and beyond.`,
+      },
+      // 3 — application / how
+      {
+        question: `How would a beginner in ${skill.name} apply knowledge of "${t}"?`,
+        options: [
+          `A) By using it as a starting point to build ${t2} and ${t3} skills`,
+          `B) By memorising definitions without any hands-on practice`,
+          `C) By applying it only in ${t4} projects`,
+          `D) By combining it exclusively with ${t3} and ignoring ${t2}`,
+        ],
+        correct: `A) By using it as a starting point to build ${t2} and ${t3} skills`,
+        explanation: `Hands-on application of "${t}" helps reinforce ${skill.name} fundamentals and creates a bridge to ${t2}.`,
+      },
+      // 4 — relationship between concepts
+      {
+        question: `What is the relationship between "${t}" and "${t2}" in ${skill.name}?`,
+        options: [
+          `A) "${t}" comes first and provides the basis for understanding "${t2}"`,
+          `B) They are unrelated concepts taught in separate modules`,
+          `C) "${t2}" must be learned before "${t}" can be applied`,
+          `D) Only one of them is needed — learners choose which to study`,
+        ],
+        correct: `A) "${t}" comes first and provides the basis for understanding "${t2}"`,
+        explanation: `In ${skill.name}, "${t}" is prerequisite knowledge that makes "${t2}" easier to grasp and apply.`,
+      },
+      // 5 — importance / why
+      {
+        question: `Why is "${t}" considered essential for mastering ${skill.name}?`,
+        options: [
+          `A) It is the foundational concept that all other ${skill.name} skills are built upon`,
+          `B) It is only essential for instructors, not for learners`,
+          `C) It speeds up ${t4} but has no impact on ${t2}`,
+          `D) Its importance is debated — many practitioners skip it`,
+        ],
+        correct: `A) It is the foundational concept that all other ${skill.name} skills are built upon`,
+        explanation: `Mastery of "${t}" gives learners the conceptual foundation to progress through ${t2}, ${t3}, and ${t4} with confidence.`,
+      },
+    ];
+
+    const tpl = templates[templateId];
     return {
       id: `q_${skill.id}_mcq_${topicIndex}`,
       skillId: skill.id,
       skillName: skill.name,
-      question: `Which of the following best describes "${t}" in the context of ${skill.name}?`,
+      question: tpl.question,
       type: 'multiple_choice',
-      options: [
-        `A) It is the primary concept that defines ${t} in ${skill.name}`,
-        `B) It relates to ${t2} and is foundational to mastering ${skill.name}`,
-        `C) It is primarily used in advanced ${t3} workflows`,
-        `D) It is an optional enhancement for ${t4}`,
-      ],
-      correct: `A) It is the primary concept that defines ${t} in ${skill.name}`,
-      explanation: `"${t}" is fundamental to ${skill.name} and is one of the first concepts a learner must master.`,
+      options: tpl.options,
+      correct: tpl.correct,
+      explanation: tpl.explanation,
       key_concepts: [t, skill.name],
       score_keywords: [t],
       source: 'fallback',

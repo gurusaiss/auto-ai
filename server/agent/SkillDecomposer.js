@@ -129,6 +129,86 @@ Rules:
     return null;
   }
 
+  // Domain-specific topic sets for common non-tech fields
+  // Used when Gemini is unavailable so fallback content is realistic
+  _getDomainTopics(subjectId, subjectTitle) {
+    const s = subjectId.toLowerCase();
+    const t = subjectTitle.toLowerCase();
+
+    // Tailoring / Sewing
+    if (/tailor|sew|stitch|garment|dressmaker|alterations/.test(s + t)) {
+      return {
+        foundations: ['seam allowance', 'fabric grain and bias', 'hand stitches (running, backstitch, slip)', 'reading a sewing pattern', 'pressing and ironing seams'],
+        practical:   ['cutting fabric on grain', 'inserting a zipper', 'sewing darts and tucks', 'finishing seams (overlock, French seam)', 'hemming techniques'],
+        intermediate:['fitting and alterations', 'collar and cuff construction', 'lining a garment', 'pattern grading', 'understanding ease in patterns'],
+        advanced:    ['draping on a dress form', 'tailored jacket construction', 'couture hand-finishing', 'creating original patterns', 'professional pressing techniques']
+      };
+    }
+    // Cooking / Chef
+    if (/cook|chef|culinary|bak|pastry|kitchen/.test(s + t)) {
+      return {
+        foundations: ['knife skills and cuts (julienne, brunoise, chiffonade)', 'mise en place', 'heat levels and cooking methods', 'seasoning and taste balance', 'kitchen safety and sanitation'],
+        practical:   ['sauté, braise, roast techniques', 'making stocks and sauces (mother sauces)', 'emulsification and vinaigrettes', 'egg cookery', 'pasta and dough fundamentals'],
+        intermediate:['Maillard reaction and caramelisation', 'flavor pairing principles', 'advanced sauce work (reduction, velouté)', 'plating and presentation', 'menu planning and costing'],
+        advanced:    ['sous vide and modern techniques', 'pastry and laminated doughs', 'fermentation and pickling', 'tasting and critique', 'building a signature dish']
+      };
+    }
+    // Music
+    if (/music|guitar|piano|violin|drum|sing|vocal|instrument/.test(s + t)) {
+      return {
+        foundations: ['notes, scales and octaves', 'rhythm, beat and time signatures', 'treble and bass clef reading', 'major vs minor keys', 'basic chords (triads)'],
+        practical:   ['chord progressions (I-IV-V-I)', 'playing in time with a metronome', 'dynamics (piano, forte, crescendo)', 'basic music notation', 'ear training — intervals'],
+        intermediate:['modes and modal playing', 'transposing between keys', '7th chords and extensions', 'improvisation basics', 'ensemble playing and listening'],
+        advanced:    ['advanced harmony and voice leading', 'composition and arrangement', 'recording and production basics', 'sight-reading', 'performance and stage presence']
+      };
+    }
+    // Photography
+    if (/photo|camera|shoot|lighting|portrait|landscape/.test(s + t)) {
+      return {
+        foundations: ['exposure triangle (ISO, aperture, shutter)', 'composition rules (rule of thirds, leading lines)', 'camera modes (manual, aperture priority)', 'understanding focal lengths', 'white balance and color temperature'],
+        practical:   ['portrait lighting setups', 'depth of field control', 'freezing vs blurring motion', 'histogram reading', 'RAW vs JPEG'],
+        intermediate:['off-camera flash and modifiers', 'post-processing in Lightroom/Camera Raw', 'focus modes and tracking', 'bracketing and HDR', 'color grading basics'],
+        advanced:    ['studio lighting ratios', 'advanced Photoshop compositing', 'tethered shooting workflow', 'building a photography portfolio', 'client and contract basics']
+      };
+    }
+    // Fitness / Training
+    if (/fitness|workout|gym|yoga|exercise|train|bodybuilding|weight/.test(s + t)) {
+      return {
+        foundations: ['compound movements (squat, deadlift, press)', 'sets, reps and progressive overload', 'warm-up and cool-down protocols', 'macronutrients and caloric balance', 'rest and recovery basics'],
+        practical:   ['proper squat form and cues', 'deadlift technique and safety', 'push/pull workout splits', 'cardiovascular training zones', 'mobility and flexibility work'],
+        intermediate:['periodisation and training cycles', 'tracking and adjusting load', 'hypertrophy vs strength protocols', 'injury prevention and prehab', 'reading body composition metrics'],
+        advanced:    ['peak week and competition prep', 'advanced nutrition strategies', 'programming for plateaus', 'coaching cues and feedback', 'sport-specific conditioning']
+      };
+    }
+    // Language learning
+    if (/spanish|french|german|japanese|mandarin|chinese|arabic|language|speak|fluent/.test(s + t)) {
+      return {
+        foundations: ['alphabet and pronunciation rules', 'core vocabulary (100 high-frequency words)', 'present tense conjugations', 'basic sentence structure (SVO)', 'greetings and everyday phrases'],
+        practical:   ['past and future tenses', 'question formation', 'numbers, dates and time', 'vocabulary for shopping, travel, food', 'listening practice with native audio'],
+        intermediate:['subjunctive and conditional moods', 'complex sentence connectors', 'reading authentic texts', 'idiomatic expressions', 'speaking fluency drills'],
+        advanced:    ['advanced grammar nuances', 'regional dialects and slang', 'academic and professional writing', 'debate and persuasion in target language', 'C1/C2 exam preparation']
+      };
+    }
+    // Drawing / Art
+    if (/draw|paint|sketch|illustrat|art|watercolor|portrait|figure/.test(s + t)) {
+      return {
+        foundations: ['line control and mark-making', 'perspective (1-point, 2-point)', 'basic shapes and form', 'light and shadow (value scale)', 'proportion and measurement'],
+        practical:   ['shading techniques (hatching, blending)', 'sketching from observation', 'gesture drawing', 'color mixing (primary, secondary)', 'composition basics'],
+        intermediate:['portrait anatomy (facial proportions)', 'figure drawing and anatomy', 'digital drawing tools', 'color theory and harmony', 'texture rendering'],
+        advanced:    ['character design and stylisation', 'storytelling through illustration', 'developing a personal style', 'portfolio curation', 'client brief and commercial work']
+      };
+    }
+
+    // Generic fallback for anything else
+    const subj = subjectTitle;
+    return {
+      foundations: [`history and origins of ${subj}`, `essential tools and materials`, `core vocabulary and terminology`, `foundational principles of ${subj}`, `first practice exercise`],
+      practical:   [`common beginner techniques`, `hands-on projects for ${subj}`, `avoiding typical mistakes`, `developing core skills`, `guided practice routines`],
+      intermediate:[`intermediate methods and approaches`, `workflow and process refinement`, `quality standards in ${subj}`, `solving common problems`, `real-world application scenarios`],
+      advanced:    [`professional-level techniques`, `advanced creative problem-solving`, `building a ${subj} portfolio`, `industry best practices`, `mentoring and teaching ${subj}`]
+    };
+  }
+
   buildDynamicDomain(goalText, profile) {
     const lowerGoal = goalText.toLowerCase();
     const learnMatch = lowerGoal.match(
@@ -143,6 +223,7 @@ Rules:
     const subjectId = subject.replace(/\s+/g, '_').toLowerCase().replace(/[^a-z0-9_]/g, '');
     const subjectTitle = subject.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     const level = profile?.learnerLevel || 'beginner';
+    const domainTopics = this._getDomainTopics(subjectId, subjectTitle);
 
     return {
       id: 'custom',
@@ -151,30 +232,30 @@ Rules:
         {
           id: `${subjectId}_foundations`,
           name: `${subjectTitle} Foundations`,
-          description: `Core concepts and mental models to begin learning ${subjectTitle}.`,
+          description: `Core concepts and hands-on basics to begin learning ${subjectTitle}.`,
           level: 'beginner', days: 4,
-          topics: [`introduction to ${subject}`, 'core concepts', 'essential tools', 'first hands-on example', 'common terminology']
+          topics: domainTopics.foundations
         },
         {
           id: `${subjectId}_practical`,
           name: `Practical ${subjectTitle}`,
-          description: `Apply ${subjectTitle} through hands-on practice.`,
+          description: `Apply ${subjectTitle} through hands-on techniques and real exercises.`,
           level: level === 'advanced' ? 'intermediate' : level, days: 5,
-          topics: ['practical techniques', 'common patterns', 'hands-on exercises', 'solving real problems', 'building projects']
+          topics: domainTopics.practical
         },
         {
           id: `${subjectId}_intermediate`,
           name: `Intermediate ${subjectTitle}`,
-          description: `Go deeper with intermediate patterns and workflows.`,
+          description: `Go deeper with intermediate patterns, quality and workflow.`,
           level: 'intermediate', days: 4,
-          topics: ['intermediate concepts', 'workflow optimization', 'common challenges', 'quality improvement', 'real-world scenarios']
+          topics: domainTopics.intermediate
         },
         {
           id: `${subjectId}_advanced`,
           name: `Advanced ${subjectTitle}`,
           description: `Professional-level ${subjectTitle} techniques and best practices.`,
           level: 'advanced', days: 4,
-          topics: ['advanced concepts', 'best practices', 'professional workflow', 'portfolio project', 'mastery techniques']
+          topics: domainTopics.advanced
         }
       ]
     };
