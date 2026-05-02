@@ -5,21 +5,24 @@ import { api } from '../utils/api.js';
 
 const PLACEHOLDERS = [
   'I want to become a backend developer...',
-  'I want to learn machine learning...',
+  'I want to learn to cook professionally...',
+  'I want to become a lawyer...',
+  'I want to master guitar...',
+  'I want to learn tailoring and fashion design...',
+  'I want to become a doctor...',
   'I want to master UI/UX design...',
-  'I want to understand data science...',
-  'I want to build React web apps...',
+  'I want to learn machine learning...',
 ];
 
 // Agent thought stream for the demo animation
 const AGENT_DEMO_STEPS = [
-  { delay: 0,    agent: 'GoalAgent',       icon: '🎯', color: '#6366F1', text: 'Parsing goal: "frontend development"...' },
-  { delay: 800,  agent: 'DecomposeAgent',  icon: '🌳', color: '#8B5CF6', text: 'Decomposing into 5 skill nodes...' },
-  { delay: 1600, agent: 'DiagnosticAgent', icon: '📋', color: '#06B6D4', text: 'Generating 5 diagnostic questions...' },
-  { delay: 2400, agent: 'ScoringAgent',    icon: '📊', color: '#0EA5E9', text: 'Gap identified: React Hooks (34%)' },
-  { delay: 3200, agent: 'CurriculumAgent', icon: '📅', color: '#14B8A6', text: 'Building 18-day personalized plan...' },
-  { delay: 4000, agent: 'EvaluatorAgent',  icon: '✅', color: '#10B981', text: 'Session scored: 78% — Grade B+' },
-  { delay: 4800, agent: 'AdaptorAgent',    icon: '⚡', color: '#F59E0B', text: 'Adapting: adding 1 React review day' },
+  { delay: 0,    agent: 'GoalAgent',       icon: '🎯', color: '#6366F1', text: 'Analyzing your learning goal...' },
+  { delay: 800,  agent: 'DecomposeAgent',  icon: '🌳', color: '#8B5CF6', text: 'Breaking down into core skills...' },
+  { delay: 1600, agent: 'DiagnosticAgent', icon: '📋', color: '#06B6D4', text: 'Generating diagnostic questions...' },
+  { delay: 2400, agent: 'ScoringAgent',    icon: '📊', color: '#0EA5E9', text: 'Identifying knowledge gaps...' },
+  { delay: 3200, agent: 'CurriculumAgent', icon: '📅', color: '#14B8A6', text: 'Building personalized learning plan...' },
+  { delay: 4000, agent: 'EvaluatorAgent',  icon: '✅', color: '#10B981', text: 'Evaluating practice responses...' },
+  { delay: 4800, agent: 'AdaptorAgent',    icon: '⚡', color: '#F59E0B', text: 'Adapting plan based on performance' },
 ];
 
 // ── Agent popup info ──────────────────────────────────────────────────────────
@@ -162,9 +165,9 @@ const TAG_INFO = {
 
 const STATS = [
   { value: '7',    label: 'Specialized Agents' },
-  { value: '18',   label: 'Avg. Learning Days' },
   { value: '∞',    label: 'Skills Supported' },
   { value: '100%', label: 'Autonomous Operation' },
+  { value: 'AI',   label: 'Powered Learning' },
 ];
 
 const FLOW_STEPS = [
@@ -339,9 +342,37 @@ export default function Landing() {
     }
   };
 
-  const loadDemo = () => {
-    localStorage.setItem('skillforge:userId', 'demo-react-fullstack');
-    navigate('/dashboard');
+  const loadDemo = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      // Create a fresh demo session with a sample goal
+      const demoGoal = 'I want to learn React for web development';
+      const data = await api.createGoal({ goalText: demoGoal });
+
+      // Auto-submit diagnostic with sample answers (random selections)
+      const sampleAnswers = data.diagnosticQuestions.map((q) => {
+        if (q.type === 'multiple-choice') {
+          // Pick a random option for MC questions
+          const randomIndex = Math.floor(Math.random() * q.options.length);
+          return q.options[randomIndex];
+        } else {
+          // Provide a sample answer for open-ended questions
+          return 'This is a sample response demonstrating understanding of the concept.';
+        }
+      });
+
+      await api.submitDiagnostic({
+        userId: data.userId,
+        answers: sampleAnswers,
+      });
+
+      localStorage.setItem('skillforge:userId', data.userId);
+      navigate('/dashboard');
+    } catch (err) {
+      setError('Demo failed to load: ' + err.message);
+      setLoading(false);
+    }
   };
 
   return (

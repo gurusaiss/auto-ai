@@ -382,12 +382,75 @@ function CareerOverview({ goal, sessions }) {
     avgScore >= 60 ? 'Moderate — key areas to strengthen' :
     'Significant — structured practice needed';
 
-  const resources = [
-    { label: 'Official Docs / Guides', url: 'https://developer.mozilla.org/', icon: '📖' },
-    { label: 'freeCodeCamp — Free Courses', url: 'https://www.freecodecamp.org/', icon: '🎓' },
-    { label: 'The Odin Project', url: 'https://www.theodinproject.com/', icon: '⚔️' },
-    { label: 'Exercism — Practice Exercises', url: 'https://exercism.org/', icon: '💪' },
-  ];
+  // Domain-specific resource mapper
+  const getDomainResources = (domain) => {
+    const resourceMap = {
+      frontend_development: [
+        { label: 'MDN Web Docs', url: 'https://developer.mozilla.org/', icon: '📖' },
+        { label: 'React Documentation', url: 'https://react.dev/', icon: '⚛️' },
+        { label: 'freeCodeCamp', url: 'https://www.freecodecamp.org/', icon: '🎓' },
+        { label: 'Frontend Mentor', url: 'https://www.frontendmentor.io/', icon: '💪' },
+      ],
+      backend_development: [
+        { label: 'Node.js Docs', url: 'https://nodejs.org/docs/', icon: '📖' },
+        { label: 'Express.js Guide', url: 'https://expressjs.com/', icon: '🚂' },
+        { label: 'PostgreSQL Tutorial', url: 'https://www.postgresql.org/docs/', icon: '🐘' },
+        { label: 'REST API Tutorial', url: 'https://restfulapi.net/', icon: '🔌' },
+      ],
+      cooking: [
+        { label: 'Serious Eats', url: 'https://www.seriouseats.com/', icon: '🍳' },
+        { label: "America's Test Kitchen", url: 'https://www.americastestkitchen.com/', icon: '👨‍🍳' },
+        { label: 'Chef Steps', url: 'https://www.chefsteps.com/', icon: '🔪' },
+        { label: 'Culinary Institute', url: 'https://www.ciachef.edu/', icon: '🎓' },
+      ],
+      law: [
+        { label: 'Indian Kanoon', url: 'https://indiankanoon.org/', icon: '⚖️' },
+        { label: 'Manupatra', url: 'https://www.manupatrafast.com/', icon: '📚' },
+        { label: 'SCC Online', url: 'https://www.scconline.com/', icon: '📖' },
+        { label: 'Legal Services India', url: 'http://www.legalservicesindia.com/', icon: '🏛️' },
+      ],
+      medicine: [
+        { label: 'PubMed', url: 'https://pubmed.ncbi.nlm.nih.gov/', icon: '🏥' },
+        { label: 'Medscape', url: 'https://www.medscape.com/', icon: '💊' },
+        { label: 'UpToDate', url: 'https://www.uptodate.com/', icon: '📖' },
+        { label: 'Khan Academy Medicine', url: 'https://www.khanacademy.org/science/health-and-medicine', icon: '🎓' },
+      ],
+      music: [
+        { label: 'MusicTheory.net', url: 'https://www.musictheory.net/', icon: '🎵' },
+        { label: 'JustinGuitar', url: 'https://www.justinguitar.com/', icon: '🎸' },
+        { label: 'Berklee Online', url: 'https://online.berklee.edu/', icon: '🎓' },
+        { label: 'Ultimate Guitar', url: 'https://www.ultimate-guitar.com/', icon: '🎼' },
+      ],
+      fashion: [
+        { label: 'Vogue Runway', url: 'https://www.vogue.com/fashion-shows', icon: '👗' },
+        { label: 'Fashion Institute', url: 'https://www.fitnyc.edu/', icon: '🎓' },
+        { label: 'Threads Magazine', url: 'https://www.threadsmagazine.com/', icon: '🧵' },
+        { label: 'Pattern Review', url: 'https://sewing.patternreview.com/', icon: '✂️' },
+      ],
+      machine_learning: [
+        { label: 'Fast.ai', url: 'https://www.fast.ai/', icon: '🤖' },
+        { label: 'Kaggle Learn', url: 'https://www.kaggle.com/learn', icon: '📊' },
+        { label: 'Papers with Code', url: 'https://paperswithcode.com/', icon: '📄' },
+        { label: 'Hugging Face', url: 'https://huggingface.co/learn', icon: '🤗' },
+      ],
+      data_science: [
+        { label: 'Kaggle', url: 'https://www.kaggle.com/', icon: '📊' },
+        { label: 'DataCamp', url: 'https://www.datacamp.com/', icon: '🎓' },
+        { label: 'Towards Data Science', url: 'https://towardsdatascience.com/', icon: '📈' },
+        { label: 'Python Data Science', url: 'https://jakevdp.github.io/PythonDataScienceHandbook/', icon: '🐍' },
+      ],
+    };
+
+    // Return domain-specific resources or generic fallback
+    return resourceMap[domain] || [
+      { label: 'Google Scholar', url: 'https://scholar.google.com/', icon: '🔍' },
+      { label: 'YouTube Learning', url: 'https://www.youtube.com/', icon: '📺' },
+      { label: 'Coursera', url: 'https://www.coursera.org/', icon: '🎓' },
+      { label: 'Khan Academy', url: 'https://www.khanacademy.org/', icon: '📚' },
+    ];
+  };
+
+  const resources = getDomainResources(goal?.domain);
 
   const projects = goal?.skills?.slice(0, 4).map((s, i) => ({
     title: `${['Beginner', 'Intermediate', 'Advanced', 'Portfolio'][i] || 'Project'}: ${s.name}`,

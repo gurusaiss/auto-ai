@@ -1,8 +1,21 @@
+// Determine API base URL based on environment
+const getApiBaseUrl = () => {
+  // In production (Vercel), use relative URLs
+  if (import.meta.env.PROD) {
+    return '';
+  }
+  // In development, use localhost
+  return 'http://localhost:3001';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
 const request = async (path, options = {}) => {
   let response;
+  const fullUrl = `${API_BASE_URL}${path}`;
 
   try {
-    response = await fetch(path, {
+    response = await fetch(fullUrl, {
       headers: {
         'Content-Type': 'application/json',
         ...(options.headers || {})

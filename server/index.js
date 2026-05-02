@@ -41,7 +41,17 @@ const geminiEnabled = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KE
 const groqEnabled   = !!(process.env.GROQ_API_KEY   && process.env.GROQ_API_KEY.length   > 10);
 
 // Middleware
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'] }));
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(cors({ 
+  origin: allowedOrigins.length > 2 ? allowedOrigins : '*',
+  credentials: true 
+}));
 app.use(express.json({ limit: '2mb' }));
 
 // ── Health check ────────────────────────────────────────────────────────────
@@ -87,5 +97,6 @@ const server = app.listen(PORT, () => {
 ╚══════════════════════════════════════╝`);
 });
 
+// Export for Vercel serverless
 export default app;
 export { server };
