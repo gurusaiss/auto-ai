@@ -44,14 +44,27 @@ const request = async (path, options = {}) => {
 };
 
 export const api = {
-  createGoal: (body) => request('/api/goal', { method: 'POST', body: JSON.stringify(body) }),
-  submitDiagnostic: (body) => request('/api/diagnostic/submit', { method: 'POST', body: JSON.stringify(body) }),
-  getDashboard: (userId) => request(`/api/session/dashboard/${userId}`),
-  getChallenge: (userId, day) => request(`/api/session/challenge/${userId}/${day}`),
-  submitSession: (body) => request('/api/session/submit', { method: 'POST', body: JSON.stringify(body) }),
-  generateReport: (userId) => request('/api/report/generate', { method: 'POST', body: JSON.stringify({ userId }) }),
-  getReport: (userId) => request(`/api/report/${userId}`),
-  getGoal: (userId) => request(`/api/goal/${userId}`)
+  // Core flow
+  createGoal:       (body)         => request('/api/goal', { method: 'POST', body: JSON.stringify(body) }),
+  submitDiagnostic: (body)         => request('/api/diagnostic/submit', { method: 'POST', body: JSON.stringify(body) }),
+  getDashboard:     (userId)       => request(`/api/session/dashboard/${userId}`),
+  getChallenge:     (userId, day)  => request(`/api/session/challenge/${userId}/${day}`),
+  submitSession:    (body)         => request('/api/session/submit', { method: 'POST', body: JSON.stringify(body) }),
+  generateReport:   (userId)       => request('/api/report/generate', { method: 'POST', body: JSON.stringify({ userId }) }),
+  getReport:        (userId)       => request(`/api/report/${userId}`),
+  getGoal:          (userId)       => request(`/api/goal/${userId}`),
+
+  // Simulation
+  runWhatIf:        (body)         => request('/api/simulation/whatif', { method: 'POST', body: JSON.stringify(body) }),
+  comparePaths:     (body)         => request('/api/simulation/compare', { method: 'POST', body: JSON.stringify(body) }),
+  getForecast:      (userId)       => request(`/api/simulation/forecast/${userId}`),
+
+  // Market Intelligence
+  getMarketIntel:   (userId)       => request(`/api/market/intelligence/${userId}`),
+  getMarketTrends:  (domain)       => request(`/api/market/trends/${domain}`),
+
+  // Health
+  getHealth:        ()             => request('/api/health'),
 };
 
 export const scoreColor = (score) => {

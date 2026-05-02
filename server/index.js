@@ -9,6 +9,9 @@ import goalRouter from './routes/goal.js';
 import diagnosticRouter from './routes/diagnostic.js';
 import sessionRouter from './routes/session.js';
 import reportRouter from './routes/report.js';
+import simulationRouter from './routes/simulation.js';
+import marketRouter from './routes/market.js';
+import demoRouter from './routes/demo.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataPath = join(__dirname, 'data');
@@ -35,6 +38,7 @@ for (const file of knowledgeFiles) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 const geminiEnabled = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 10);
+const groqEnabled   = !!(process.env.GROQ_API_KEY   && process.env.GROQ_API_KEY.length   > 10);
 
 // Middleware
 app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'] }));
@@ -46,8 +50,10 @@ app.get('/api/health', (req, res) => {
     success: true,
     data: {
       status: 'ok',
-      gemini: geminiEnabled ? 'enabled' : 'disabled (fallback mode)',
+      gemini: geminiEnabled ? 'enabled' : 'disabled',
+      groq: groqEnabled ? 'enabled (fallback)' : 'disabled',
       model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      agents: ['GoalAgent','DecomposeAgent','DiagnosticAgent','ScoringAgent','CurriculumAgent','EvaluatorAgent','AdaptorAgent','MarketAgent','SimulationAgent'],
       port: PORT,
       uptime: Math.round(process.uptime()) + 's',
       timestamp: new Date().toISOString()
@@ -60,6 +66,9 @@ app.use('/api/goal', goalRouter);
 app.use('/api/diagnostic', diagnosticRouter);
 app.use('/api/session', sessionRouter);
 app.use('/api/report', reportRouter);
+app.use('/api/simulation', simulationRouter);
+app.use('/api/market', marketRouter);
+app.use('/api/demo', demoRouter);
 
 // Global error handler
 app.use((err, req, res, _next) => {

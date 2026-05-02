@@ -426,10 +426,10 @@ export default function Landing() {
                   </button>
                   <button
                     type="button"
-                    onClick={loadDemo}
-                    className="px-5 py-3.5 rounded-xl font-bold text-sm border border-indigo-500/40 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 transition-all"
+                    onClick={() => navigate('/demo')}
+                    className="px-5 py-3.5 rounded-xl font-bold text-sm border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all"
                   >
-                    🎬 Load Demo
+                    🚀 Live Demo
                   </button>
                 </div>
                 {error && <p className="text-xs text-red-400">{error}</p>}
@@ -538,6 +538,35 @@ export default function Landing() {
             ))}
           </div>
           <p className="text-[9px] text-slate-700 mt-3 italic">Click any tag to learn more</p>
+        </motion.div>
+
+        {/* ── FRONTIER FEATURES GRID ─────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="mt-16"
+        >
+          <p className="text-xs text-slate-600 mb-6 uppercase tracking-widest text-center">Frontier Intelligence Modules</p>
+          <div className="grid md:grid-cols-4 gap-4">
+            {[
+              { icon: '🚀', label: 'Live Demo', desc: 'Watch 7 agents orchestrate in real-time', path: '/demo', color: '#10B981' },
+              { icon: '🧬', label: 'Career Digital Twin', desc: 'Your evolving virtual career model', path: '/career-twin', color: '#6366F1' },
+              { icon: '🔮', label: 'Simulation Lab', desc: 'What-if career scenario analyzer', path: '/simulation', color: '#8B5CF6' },
+              { icon: '🧠', label: 'Explainability Console', desc: 'Full agent reasoning chain', path: '/explain', color: '#F59E0B' },
+            ].map(({ icon, label, desc, path, color }) => (
+              <button key={path} onClick={() => navigate(path)}
+                className="flex flex-col items-start gap-2 p-4 rounded-xl border border-slate-700/60 bg-slate-900/50 hover:bg-slate-900/80 hover:border-slate-600 transition-all text-left group">
+                <div className="w-9 h-9 rounded-lg flex items-center justify-center text-xl"
+                  style={{ background: color + '15', border: `1px solid ${color}30` }}>
+                  {icon}
+                </div>
+                <div className="font-bold text-slate-200 text-sm group-hover:text-white transition-all">{label}</div>
+                <div className="text-slate-500 text-xs leading-relaxed">{desc}</div>
+                <div className="text-xs font-semibold mt-auto" style={{ color }}>Open →</div>
+              </button>
+            ))}
+          </div>
         </motion.div>
 
       </div>
