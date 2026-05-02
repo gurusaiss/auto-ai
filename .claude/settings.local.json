@@ -17,7 +17,9 @@
       "Bash(curl -s http://localhost:3001/api/dashboard/demo-react-fullstack)",
       "Bash(curl -s http://localhost:3001/)",
       "Bash(curl -s http://localhost:3001/api/goal)",
-      "Bash(curl -s http://localhost:3001/api/session/dashboard/demo-react-fullstack)"
+      "Bash(curl -s http://localhost:3001/api/session/dashboard/demo-react-fullstack)",
+      "PowerShell(Get-Process -Name node -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force)"
     ]
   }
 }

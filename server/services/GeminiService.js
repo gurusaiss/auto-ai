@@ -6,15 +6,25 @@
 
 class GeminiService {
   constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY || '';
-    this.model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-    this.endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent`;
+    // DO NOT cache apiKey here — ES modules are imported before loadEnv() runs
+    // Always read from process.env at call-time via the getter below
+    this.model = 'gemini-2.0-flash';
     this.maxRetries = 3;
     this.callCount = 0;
   }
 
+  // Read key fresh every time — never stale
+  get apiKey() {
+    return process.env.GEMINI_API_KEY || '';
+  }
+
+  get endpoint() {
+    const model = process.env.GEMINI_MODEL || this.model;
+    return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  }
+
   isEnabled() {
-    return !!this.apiKey && this.apiKey.length > 10;
+    return !!(this.apiKey && this.apiKey.length > 10);
   }
 
   /**
