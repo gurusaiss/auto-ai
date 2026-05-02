@@ -98,42 +98,105 @@ function MissionCard({ planDay, adaptations, onLaunch, loading }) {
   );
 }
 
-// ── Plan timeline dots ────────────────────────────────────────────────────────
+// ── Plan grid (improved day tiles) ───────────────────────────────────────────
 function PlanTimeline({ learningPlan, navigate }) {
+  const [hoveredDay, setHoveredDay] = useState(null);
+
   const groups = learningPlan.reduce((acc, d) => {
     (acc[d.skillName] = acc[d.skillName] || []).push(d);
     return acc;
   }, {});
 
+  const typeIcon = { concept: '📖', practice: '⚔️', review: '🔄' };
+  const typeColor = {
+    concept:  { bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   text: 'text-blue-300' },
+    practice: { bg: 'bg-indigo-500/10', border: 'border-indigo-500/30', text: 'text-indigo-300' },
+    review:   { bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  text: 'text-amber-300' },
+  };
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       {Object.entries(groups).map(([skill, days]) => (
         <div key={skill}>
-          <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-1.5">{skill}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {days.map(d => (
-              <button
-                key={d.day}
-                title={`Day ${d.day}: ${d.topic || d.skillName}`}
-                onClick={() => !d.completed && navigate(`/session/${d.day}`)}
-                className={`w-7 h-7 rounded-lg text-[10px] font-bold border transition-all hover:scale-110 ${
-                  d.completed
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 cursor-default'
-                    : d.addedByAgent
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:border-amber-400'
-                    : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-indigo-500/60 hover:text-indigo-300'
-                }`}
-              >
-                {d.completed ? '✓' : d.day}
-              </button>
-            ))}
+          {/* Skill group header */}
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-px flex-1 bg-slate-800" />
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-2">{skill}</p>
+            <div className="h-px flex-1 bg-slate-800" />
+          </div>
+
+          {/* Day cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {days.map(d => {
+              const tc = typeColor[d.sessionType] || typeColor.practice;
+              const isHovered = hoveredDay === d.day;
+              return (
+                <button
+                  key={d.day}
+                  onClick={() => !d.completed && navigate(`/session/${d.day}`)}
+                  onMouseEnter={() => setHoveredDay(d.day)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  disabled={d.completed}
+                  className={`relative rounded-xl border p-3 text-left transition-all duration-200 group ${
+                    d.completed
+                      ? 'bg-emerald-500/8 border-emerald-500/25 cursor-default'
+                      : d.addedByAgent
+                      ? 'bg-amber-500/8 border-amber-500/25 hover:border-amber-400/50 hover:bg-amber-500/12 active:scale-[0.98]'
+                      : `${tc.bg} ${tc.border} hover:brightness-125 hover:shadow-lg active:scale-[0.98] cursor-pointer`
+                  }`}
+                >
+                  {/* Day number + status */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className={`text-[10px] font-black font-mono ${
+                      d.completed ? 'text-emerald-400' : d.addedByAgent ? 'text-amber-400' : tc.text
+                    }`}>
+                      {d.completed ? '✓' : `D${d.day}`}
+                    </span>
+                    <span className="text-[10px]">
+                      {d.completed ? '✅' : (typeIcon[d.sessionType] || '📌')}
+                    </span>
+                  </div>
+
+                  {/* Topic */}
+                  <p className={`text-[10px] font-semibold leading-snug truncate ${
+                    d.completed ? 'text-emerald-300/70' : 'text-slate-300'
+                  }`}>
+                    {d.topic || d.skillName}
+                  </p>
+
+                  {/* Time estimate */}
+                  <p className="text-[9px] text-slate-600 mt-0.5">{d.estimatedMinutes}m</p>
+
+                  {/* Agent-added badge */}
+                  {d.addedByAgent && (
+                    <span className="absolute top-1.5 right-1.5 text-[8px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold">
+                      ⚡ AI
+                    </span>
+                  )}
+
+                  {/* Hover tooltip */}
+                  {isHovered && d.objective && (
+                    <div className="absolute bottom-full left-0 right-0 mb-1 z-10 bg-slate-900 border border-slate-700 rounded-lg p-2 shadow-xl pointer-events-none">
+                      <p className="text-[9px] text-slate-300 leading-relaxed line-clamp-3">{d.objective}</p>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       ))}
-      <div className="flex gap-4 pt-1 text-[9px] text-slate-600">
-        {[['bg-emerald-500/15 border-emerald-500/40', 'Done'], ['bg-amber-500/10 border-amber-500/30', 'Agent Added'], ['bg-slate-800 border-slate-700', 'Pending']].map(([cls, label]) => (
+
+      {/* Legend */}
+      <div className="flex flex-wrap gap-4 pt-2 text-[9px] text-slate-600">
+        {[
+          ['bg-emerald-500/8 border-emerald-500/25', '✅', 'Completed'],
+          ['bg-indigo-500/10 border-indigo-500/30', '⚔️', 'Practice'],
+          ['bg-blue-500/10 border-blue-500/30',     '📖', 'Concept'],
+          ['bg-amber-500/8 border-amber-500/25',    '⚡', 'Agent Added'],
+        ].map(([cls, icon, label]) => (
           <div key={label} className="flex items-center gap-1.5">
-            <div className={`w-3.5 h-3.5 rounded border ${cls}`} />
+            <div className={`w-4 h-4 rounded border text-[8px] flex items-center justify-center ${cls}`}>{icon}</div>
             <span>{label}</span>
           </div>
         ))}
@@ -182,39 +245,96 @@ function ScoreChart({ sessions }) {
   );
 }
 
-// ── Skill mastery bars ────────────────────────────────────────────────────────
+// ── Skill mastery bars (expandable) ──────────────────────────────────────────
 function SkillBars({ skills, diagnosticScores }) {
+  const [expanded, setExpanded] = useState(null);
+
   if (!skills.length) return <div className="text-slate-600 text-xs text-center py-8">No skills loaded</div>;
 
   const barColor = (m) => m >= 75 ? '#10b981' : m >= 50 ? '#6366f1' : m > 0 ? '#f59e0b' : '#475569';
   const statusBadge = {
-    complete:    'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    active:      'bg-indigo-500/15 text-indigo-400 border-indigo-500/30',
-    demonstrated:'bg-teal-500/15 text-teal-400 border-teal-500/30',
-    locked:      'bg-slate-800 text-slate-600 border-slate-700',
+    complete:     'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    active:       'bg-indigo-500/15  text-indigo-400  border-indigo-500/30',
+    demonstrated: 'bg-teal-500/15    text-teal-400    border-teal-500/30',
+    locked:       'bg-slate-800      text-slate-600   border-slate-700',
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {skills.map(skill => {
-        const diag = diagnosticScores?.[skill.id];
+        const diag  = diagnosticScores?.[skill.id];
         const color = barColor(skill.mastery);
+        const isOpen = expanded === skill.id;
+
         return (
-          <div key={skill.id}>
-            <div className="flex items-center justify-between mb-1.5 gap-2">
+          <div
+            key={skill.id}
+            className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+              isOpen ? 'border-indigo-500/30 bg-indigo-500/5' : 'border-slate-700/50 bg-slate-800/20 hover:border-slate-600/60'
+            }`}
+          >
+            {/* Header row — clickable */}
+            <button
+              className="w-full flex items-center gap-3 px-4 py-3 text-left"
+              onClick={() => setExpanded(isOpen ? null : skill.id)}
+            >
+              {/* Expand arrow */}
+              <span className={`text-slate-600 text-[10px] transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-90' : ''}`}>▶</span>
+
               <span className="text-xs font-semibold text-slate-300 flex-1 truncate">{skill.name}</span>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                {diag != null && <span className="text-[10px] text-slate-600">Diag {diag}%</span>}
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {diag != null && (
+                  <span className="text-[9px] text-slate-600 hidden sm:block">Diag {diag}%</span>
+                )}
                 <span className={`text-[9px] px-2 py-0.5 rounded-full border font-semibold capitalize ${statusBadge[skill.status] || statusBadge.locked}`}>
                   {skill.status}
                 </span>
                 <span className="text-xs font-black font-mono w-9 text-right" style={{ color }}>{skill.mastery}%</span>
               </div>
+            </button>
+
+            {/* Progress bar */}
+            <div className="px-4 pb-2.5">
+              <ProgressBar value={skill.mastery} color={color} />
             </div>
-            <ProgressBar value={skill.mastery} color={color} />
+
+            {/* Expanded topics */}
+            {isOpen && (
+              <div className="px-4 pb-4 pt-1 border-t border-slate-700/40">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 mt-2">Topics Covered</p>
+                {(skill.topics || []).length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(skill.topics || []).map((topic, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] px-2.5 py-1 rounded-lg border font-medium"
+                        style={{
+                          backgroundColor: `${barColor(skill.mastery)}10`,
+                          borderColor: `${barColor(skill.mastery)}25`,
+                          color: barColor(skill.mastery),
+                        }}
+                      >
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No topics listed — complete sessions to populate.</p>
+                )}
+                {diag != null && (
+                  <p className="text-[9px] text-slate-600 mt-2">
+                    Diagnostic score: <span className="font-bold text-slate-400">{diag}%</span>
+                    {diag < 50 ? ' · flagged for extra practice' : diag >= 75 ? ' · strong foundation' : ' · moderate baseline'}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
+
+      <p className="text-[9px] text-slate-700 text-center pt-1 italic">Click any skill to see topics</p>
     </div>
   );
 }
@@ -433,11 +553,6 @@ export default function Dashboard() {
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Active Goal</p>
-                {aiPowered && (
-                  <span className="text-[8px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 font-black uppercase tracking-wide">
-                    🤖 Gemini AI
-                  </span>
-                )}
               </div>
               <p className="text-lg font-black text-white leading-tight truncate max-w-xl">{goal.goalText}</p>
               <p className="text-xs text-indigo-300 mt-0.5 font-semibold">{goal.domainLabel}</p>
@@ -568,8 +683,43 @@ export default function Dashboard() {
 
           {/* AGENT BRAIN TAB */}
           {activeTab === 'agent' && (
-            <div className="h-[480px]">
-              <AgentBrain decisions={agentDecisions} isThinking={false} />
+            <div className="space-y-4">
+              {/* Pipeline overview */}
+              <div className="rounded-xl border border-slate-700/50 bg-slate-800/20 p-4">
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">7-Agent Pipeline</p>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { icon: '🎯', name: 'GoalAgent',       color: '#6366F1' },
+                    { icon: '🌳', name: 'DecomposeAgent',  color: '#8B5CF6' },
+                    { icon: '📋', name: 'DiagnosticAgent', color: '#06B6D4' },
+                    { icon: '📊', name: 'ScoringAgent',    color: '#0EA5E9' },
+                    { icon: '📅', name: 'CurriculumAgent', color: '#14B8A6' },
+                    { icon: '✅', name: 'EvaluatorAgent',  color: '#10B981' },
+                    { icon: '⚡', name: 'AdaptorAgent',    color: '#F59E0B' },
+                  ].map((a, i) => (
+                    <div key={a.name} className="flex items-center gap-1">
+                      <div
+                        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border text-[10px] font-semibold"
+                        style={{ backgroundColor: `${a.color}10`, borderColor: `${a.color}25`, color: a.color }}
+                      >
+                        <span>{a.icon}</span>
+                        <span className="hidden sm:inline">{a.name}</span>
+                      </div>
+                      {i < 6 && <span className="text-slate-700 text-xs">→</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Decision log */}
+              <div>
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                  Decision Log · {agentDecisions.length} entries
+                </p>
+                <div className="h-[380px] overflow-hidden rounded-xl border border-slate-700/50">
+                  <AgentBrain decisions={agentDecisions} isThinking={false} />
+                </div>
+              </div>
             </div>
           )}
 

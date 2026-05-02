@@ -37,6 +37,99 @@ const OPTION_COLORS = {
   default:   'border-slate-700 bg-slate-800/30 text-slate-300 hover:border-slate-500 hover:bg-slate-800/70',
 };
 
+// ── Learn Phase Component ────────────────────────────────────────────────────
+function LearnPhase({ challenge, planDay, onReady }) {
+  const cs = challenge?.conceptSummary;
+  const topic = planDay?.topic || planDay?.skillName || 'Today\'s Concept';
+
+  return (
+    <div className="mx-auto max-w-2xl px-6 py-8 space-y-5">
+      {/* Header */}
+      <div className="text-center mb-2">
+        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">
+          📚 Learn First — Then Practice
+        </p>
+        <h1 className="text-2xl font-black text-slate-100 mt-1 leading-tight">
+          {cs?.title || topic}
+        </h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Read through this before your challenge — it'll make the difference
+        </p>
+      </div>
+
+      {/* Definition */}
+      <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 p-5">
+        <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+          <span>📖</span> Definition
+        </p>
+        <p className="text-sm text-slate-200 leading-relaxed font-medium">
+          {cs?.definition || `${topic} is a key concept you'll practice in today's session.`}
+        </p>
+      </div>
+
+      {/* Key Points */}
+      <div className="rounded-2xl border border-slate-700/60 bg-slate-900/80 p-5">
+        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <span>🔑</span> Key Points
+        </p>
+        <ul className="space-y-2.5">
+          {(cs?.keyPoints || [
+            `${topic} is fundamental to mastering ${planDay?.skillName}`,
+            'Focus on understanding the concept before applying it',
+            'Practice with real-world scenarios to solidify your knowledge',
+          ]).map((pt, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-sm text-slate-300">
+              <span className="w-5 h-5 rounded-md bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5 border border-indigo-500/30">
+                {i + 1}
+              </span>
+              <span className="leading-relaxed">{pt}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Example */}
+      {(cs?.example) && (
+        <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+          <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <span>💡</span> Real-World Example
+          </p>
+          <p className="text-sm text-slate-300 leading-relaxed">{cs.example}</p>
+        </div>
+      )}
+
+      {/* Pro Tip */}
+      {(cs?.proTip) && (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-4">
+          <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <span>⚡</span> Pro Tip
+          </p>
+          <p className="text-sm text-slate-300 leading-relaxed">{cs.proTip}</p>
+        </div>
+      )}
+
+      {/* Skill context */}
+      <div className="flex items-center gap-2 text-[10px] text-slate-600 justify-center flex-wrap">
+        <span className="px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700">
+          {planDay?.skillName}
+        </span>
+        <span>•</span>
+        <span className="capitalize">{planDay?.sessionType} session</span>
+        <span>•</span>
+        <span>~{planDay?.estimatedMinutes}m total</span>
+      </div>
+
+      {/* CTA */}
+      <button
+        onClick={onReady}
+        className="w-full py-4 rounded-xl font-black text-sm bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white transition-all hover:shadow-xl hover:shadow-indigo-500/20 active:scale-[0.99]"
+      >
+        ✅ I'm Ready — Start Practice →
+      </button>
+    </div>
+  );
+}
+
 // ── MCQ Warm-up Component ────────────────────────────────────────────────────
 function WarmupMCQ({ question, onDone }) {
   const [selected, setSelected] = useState(null);
@@ -197,7 +290,7 @@ export default function Session() {
   const userId = localStorage.getItem('skillforge:userId');
 
   const [data, setData] = useState(null);
-  // phases: loading | confidence | warmup | challenge | evaluating | result | journal
+  // phases: loading | confidence | learn | warmup | challenge | evaluating | result | journal
   const [phase, setPhase] = useState('loading');
   const [response, setResponse] = useState('');
   const [showHints, setShowHints] = useState(false);
@@ -256,6 +349,15 @@ export default function Session() {
     <div className="mx-auto max-w-3xl px-6 py-14 text-red-400 text-center">{error || 'Challenge not found.'}</div>
   );
 
+  // Helper: advance from confidence/learn to next phase
+  const afterConfidence = () => {
+    // Always go to learn phase first
+    setPhase('learn');
+  };
+  const afterLearn = () => {
+    setPhase(data?.challenge?.warmupQuestion ? 'warmup' : 'challenge');
+  };
+
   // ── CONFIDENCE SELECTOR ──────────────────────────────────────────────────
   if (phase === 'confidence') return (
     <div className="mx-auto max-w-2xl px-6 py-10 space-y-5">
@@ -264,14 +366,23 @@ export default function Session() {
         <h1 className="text-2xl font-black text-slate-100 mt-1">Before You Begin</h1>
         <p className="text-sm text-slate-500 mt-1">The agent tracks your metacognitive accuracy</p>
       </div>
-      <ConfidenceSelector onSelect={(level) => { setConfidenceLevel(level); setTimeout(() => setPhase(data?.challenge?.warmupQuestion ? 'warmup' : 'challenge'), 400); }} selected={confidenceLevel} />
+      <ConfidenceSelector onSelect={(level) => { setConfidenceLevel(level); setTimeout(afterConfidence, 400); }} selected={confidenceLevel} />
       <button
-        onClick={() => setPhase(data?.challenge?.warmupQuestion ? 'warmup' : 'challenge')}
+        onClick={afterConfidence}
         className="w-full py-3 rounded-xl text-xs text-slate-600 border border-slate-800 hover:text-slate-400 hover:border-slate-700 transition-all"
       >
         Skip confidence check →
       </button>
     </div>
+  );
+
+  // ── LEARN PHASE ──────────────────────────────────────────────────────────
+  if (phase === 'learn' && data) return (
+    <LearnPhase
+      challenge={data.challenge}
+      planDay={data.planDay}
+      onReady={afterLearn}
+    />
   );
 
   // ── MCQ WARM-UP ──────────────────────────────────────────────────────────

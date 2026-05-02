@@ -32,6 +32,18 @@ Return ONLY valid JSON:
   "title": "Specific, engaging challenge title about ${topic}",
   "description": "2-3 sentence real-world scenario. Name actual ${domain} tools/techniques/materials. Example: 'You are working on a client's formal dress and need to apply darts to the bodice...'",
   "type": "${sessionType}",
+  "conceptSummary": {
+    "title": "Short concept title (2-5 words) for ${topic}",
+    "definition": "Clear 1-2 sentence definition of ${topic} in the context of ${domain}",
+    "keyPoints": [
+      "Key point 1 — a foundational fact about ${topic}",
+      "Key point 2 — how it is applied in ${domain}",
+      "Key point 3 — a common mistake or misconception",
+      "Key point 4 — why mastering this matters"
+    ],
+    "example": "A concrete real-world example showing ${topic} in action in ${domain}",
+    "proTip": "One actionable pro tip that experts use when dealing with ${topic}"
+  },
   "hints": [
     "Domain-specific hint 1 about ${topic}",
     "Domain-specific hint 2",
@@ -61,7 +73,8 @@ IMPORTANT:
 - Everything must be 100% specific to "${domain}" — NOT generic
 - Use real ${domain} terminology (e.g. for tailoring: seam ripper, grain line, basting stitch, ease)
 - The warmupQuestion must have EXACTLY 4 options labeled A) B) C) D)
-- No generic phrases like "core concept" or "fundamental principle"`;
+- No generic phrases like "core concept" or "fundamental principle"
+- conceptSummary must be beginner-friendly, clear, and domain-specific`;
 
     try {
       const result = await GeminiService.generateJSON(prompt,
@@ -162,6 +175,18 @@ IMPORTANT:
         'connection to real use cases',
       ],
       model_solution: `A strong response defines "${topic}", shows how it applies in ${skillName} with a concrete example, and explains the reasoning clearly.`,
+      conceptSummary: {
+        title: topic,
+        definition: `${topic} is an important concept in ${skillName} that involves understanding and applying its core principles within ${domain} contexts.`,
+        keyPoints: [
+          `${topic} is foundational to mastering ${skillName} — it underpins many advanced techniques.`,
+          `In ${domain}, ${topic} is commonly applied when working on real-world tasks and projects.`,
+          `A common mistake is treating ${topic} as purely theoretical — hands-on practice is essential.`,
+          `Mastering ${topic} will directly improve your confidence and output quality in ${domain}.`,
+        ],
+        example: `In a real ${domain} scenario, you would encounter ${topic} when building or working on a project that requires ${skillName}. Understanding it lets you make better decisions and avoid common pitfalls.`,
+        proTip: `Always connect ${topic} to a concrete use case before diving into theory. Asking "where would I use this today?" makes it stick much faster.`,
+      },
     };
   }
 
