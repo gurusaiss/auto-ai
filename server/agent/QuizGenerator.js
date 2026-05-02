@@ -40,17 +40,21 @@ class QuizGenerator {
       `${i + 1}. ${s.name} (id: ${s.id}, topics: ${(s.topics || []).slice(0, 3).join(', ')})`
     ).join('\n');
 
-    const prompt = `You are an expert assessment designer. Create a diagnostic quiz for: "${goalText}"
+    const prompt = `You are an expert assessment designer. Create a diagnostic quiz for someone who wants to: "${goalText}"
 
 Domain: ${domainLabel}
-Learner level: ${profile?.learnerLevel || 'beginner'}
-Skills to assess:
+Target skills:
 ${skillList}
 
-Generate EXACTLY ${TARGET_QUESTIONS} multiple-choice questions (one per difficulty level).
-Each question MUST test REAL ${domainLabel} knowledge — no generic learning theory questions.
+Generate EXACTLY ${TARGET_QUESTIONS} multiple-choice questions. Each question must test REAL ${domainLabel} knowledge that a practitioner or student in this field would actually need to know.
 
-Difficulty order: 1=basic, 2=moderate, 3=advanced, 4=practical, 5=real_world
+CORRECT examples by domain:
+- Doctor/Medicine: "A patient presents with crushing chest pain, elevated troponin, and ST elevation in V1-V4. What is the diagnosis?" NOT "What is the purpose of clinical medicine?"
+- Lawyer/Law: "Under Section 300 IPC, what distinguishes murder from culpable homicide?" NOT "Why is contract law important?"
+- Chef/Cooking: "At what internal temperature is chicken considered safe to eat?" NOT "What is the purpose of learning cooking?"
+- Engineer: "A simply-supported beam of 6m span carries 15 kN/m UDL. What is the maximum bending moment?" NOT "What is the role of structural analysis?"
+
+Difficulty order: q1=basic, q2=moderate, q3=advanced, q4=practical scenario, q5=real_world professional judgment
 
 Return ONLY valid JSON:
 {
@@ -59,31 +63,31 @@ Return ONLY valid JSON:
       "id": "q1",
       "skillId": "exact_skill_id_from_list",
       "skillName": "Exact Skill Name",
-      "concept": "The specific concept being tested (e.g. 'Seam Allowance', 'Maillard Reaction', 'Virtual DOM')",
+      "concept": "Short concept name tested (e.g. 'Brachial Plexus', 'Mens Rea', 'Maillard Reaction', 'Flexbox vs Grid')",
       "difficulty": "basic",
-      "question": "Specific question text using real ${domainLabel} terminology",
+      "question": "A specific factual or scenario-based question using REAL ${domainLabel} terminology",
       "type": "multiple_choice",
       "options": [
-        "A) correct or plausible answer",
-        "B) plausible but wrong",
-        "C) plausible but wrong",
-        "D) wrong"
+        "A) The correct answer with brief justification",
+        "B) A plausible but wrong answer (common misconception)",
+        "C) A plausible but wrong answer",
+        "D) A clearly wrong answer"
       ],
-      "correct": "A) correct or plausible answer",
-      "explanation": "Why this is correct in the context of ${domainLabel}.",
-      "key_concepts": ["concept1", "concept2"],
+      "correct": "A) The correct answer with brief justification",
+      "explanation": "Detailed explanation using ${domainLabel} terminology and reasoning.",
+      "key_concepts": ["real concept 1", "real concept 2"],
       "score_keywords": ["keyword1", "keyword2"]
     }
   ]
 }
 
-Rules:
-- ALL ${TARGET_QUESTIONS} questions must be type "multiple_choice"
-- Each must have EXACTLY 4 options labeled A) B) C) D)
-- "correct" must EXACTLY match one option
+CRITICAL RULES:
+- Questions must test DOMAIN KNOWLEDGE, not "meta-learning" (never ask "why is X important to learn")
+- Use real terminology from ${domainLabel} (e.g. troponin, habeas corpus, mise en place, shear force)
+- Wrong options must be plausible misconceptions a learner might actually have — not obviously fake
 - Each question covers a DIFFERENT difficulty: basic, moderate, advanced, practical, real_world
-- Questions must use REAL ${domainLabel} terms — no generic phrases
-- "concept" field must name the specific topic tested (keep it short, ≤ 6 words)`;
+- "correct" must EXACTLY match one of the four option strings
+- "concept" must be the specific named topic tested (≤ 6 words)`;
 
     try {
       const result = await GeminiService.generateJSON(prompt,
@@ -147,83 +151,93 @@ Rules:
     return score;
   }
 
-  // ── STEP 4: Varied fallback generator (6 templates, domain-aware topics) ──
+  // ── STEP 4: Domain-knowledge fallback generator ───────────────────────────
+  // Uses actual topic names to write knowledge-testing questions, NOT meta-questions.
+  // These test whether the learner KNOWS the concept, not whether they know it's important.
   buildFallbackMCQ(skill, topicIndex = 0) {
     const topics = skill.topics || [];
     const t  = topics[topicIndex % topics.length] || skill.name;
     const t2 = topics[(topicIndex + 1) % Math.max(topics.length, 1)] || 'practical application';
-    const t3 = topics[(topicIndex + 2) % Math.max(topics.length, 1)] || 'fundamentals';
+    const t3 = topics[(topicIndex + 2) % Math.max(topics.length, 1)] || 'core concepts';
     const t4 = topics[(topicIndex + 3) % Math.max(topics.length, 1)] || 'advanced techniques';
+    const domain = skill.name;
 
     const DIFFICULTIES = ['basic', 'moderate', 'advanced', 'practical', 'real_world'];
     const templateId = topicIndex % 6;
 
+    // Each template tests understanding of the topic itself, using a scenario or direct question
     const templates = [
       {
-        question: `What is the primary purpose of "${t}" when learning ${skill.name}?`,
+        // Knowledge check: what does the topic involve / mean?
+        question: `Which description best captures what "${t}" involves in ${domain}?`,
         options: [
-          `A) It establishes the foundational knowledge needed for ${skill.name}`,
-          `B) It is only used in advanced ${t3} scenarios`,
-          `C) It replaces the need to understand ${t2}`,
-          `D) It is an optional concept that can be skipped`,
+          `A) "${t}" covers the core principles and techniques that directly enable practical work in ${domain}`,
+          `B) "${t}" is a supplementary concept only relevant after completing ${t4}`,
+          `C) "${t}" and "${t3}" are interchangeable terms for the same technique`,
+          `D) "${t}" is an outdated approach replaced entirely by ${t2} in modern ${domain}`,
         ],
-        correct: `A) It establishes the foundational knowledge needed for ${skill.name}`,
-        explanation: `"${t}" is a core element of ${skill.name} that learners encounter early and build upon throughout their training.`,
+        correct: `A) "${t}" covers the core principles and techniques that directly enable practical work in ${domain}`,
+        explanation: `"${t}" is a key component of ${domain} that practitioners apply regularly. Confusing it with "${t3}" or treating it as outdated leads to gaps in foundational skill. It is distinct from, and often prerequisite to, "${t2}".`,
       },
       {
-        question: `At which stage of learning ${skill.name} is "${t}" most important?`,
+        // Application: when/how do practitioners use it?
+        question: `In a real ${domain} scenario, when would a practitioner specifically apply "${t}"?`,
         options: [
-          `A) At the very beginning — it sets the foundation for everything else`,
-          `B) Only after mastering ${t4}`,
-          `C) It is equally important at all stages`,
-          `D) Only when preparing for ${t3}`,
+          `A) When working on tasks that require ${domain} knowledge of "${t}" to get correct, consistent results`,
+          `B) Only in academic settings — "${t}" has no practical application outside theory`,
+          `C) Only once "${t4}" has been fully mastered`,
+          `D) As a last resort when "${t2}" and "${t3}" have both failed`,
         ],
-        correct: `A) At the very beginning — it sets the foundation for everything else`,
-        explanation: `"${t}" is introduced early in ${skill.name} because it underpins more advanced concepts like ${t2}.`,
+        correct: `A) When working on tasks that require ${domain} knowledge of "${t}" to get correct, consistent results`,
+        explanation: `In ${domain}, "${t}" is applied in real-world work, not just in theory. Skipping it leads to errors in tasks that depend on it. A practitioner encounters "${t}" regularly when working on projects involving "${t2}".`,
       },
       {
-        question: `Which statement about "${t}" in ${skill.name} is CORRECT?`,
+        // Sequencing / dependency
+        question: `A student learning ${domain} is struggling with "${t2}". What is the most likely reason?`,
         options: [
-          `A) "${t}" must be understood before progressing to ${t2}`,
-          `B) "${t}" is only relevant to professionals, not beginners`,
-          `C) "${t}" and "${t3}" are interchangeable concepts`,
-          `D) "${t}" is a recent innovation and not widely practised`,
+          `A) They have not yet mastered "${t}" — it is a prerequisite that "${t2}" builds directly upon`,
+          `B) "${t2}" is too advanced for anyone without a degree in ${domain}`,
+          `C) They should skip "${t2}" entirely and move directly to "${t4}"`,
+          `D) The problem is unrelated to prior knowledge — "${t2}" stands alone`,
         ],
-        correct: `A) "${t}" must be understood before progressing to ${t2}`,
-        explanation: `Understanding "${t}" is prerequisite knowledge in ${skill.name}. It directly enables the learner to work with ${t2}.`,
+        correct: `A) They have not yet mastered "${t}" — it is a prerequisite that "${t2}" builds directly upon`,
+        explanation: `In ${domain}, topics are scaffolded: "${t}" must be solid before "${t2}" makes sense. This sequencing prevents foundational gaps. Learners who skip ahead and struggle should revisit prior topics like "${t}" before continuing.`,
       },
       {
-        question: `How would a beginner in ${skill.name} apply knowledge of "${t}"?`,
+        // Common mistake / misconception
+        question: `What is the most common mistake beginners make regarding "${t}" in ${domain}?`,
         options: [
-          `A) By using it as a starting point to build ${t2} and ${t3} skills`,
-          `B) By memorising definitions without hands-on practice`,
-          `C) By applying it only in ${t4} projects`,
-          `D) By combining it exclusively with ${t3} and ignoring ${t2}`,
+          `A) Treating "${t}" as optional or theoretical, instead of practising it hands-on in real ${domain} tasks`,
+          `B) Spending too much time on "${t}" when they should move straight to ${t4}`,
+          `C) Learning "${t}" before understanding "${t3}", which is its direct prerequisite`,
+          `D) Applying "${t}" in professional settings before completing academic study`,
         ],
-        correct: `A) By using it as a starting point to build ${t2} and ${t3} skills`,
-        explanation: `Hands-on application of "${t}" reinforces ${skill.name} fundamentals and creates a bridge to ${t2}.`,
+        correct: `A) Treating "${t}" as optional or theoretical, instead of practising it hands-on in real ${domain} tasks`,
+        explanation: `The most common beginner mistake with "${t}" in ${domain} is treating it as pure theory. Without hands-on practice, the concept remains abstract and fails to transfer to real tasks. Active application is what builds genuine skill.`,
       },
       {
-        question: `What is the relationship between "${t}" and "${t2}" in ${skill.name}?`,
+        // Comparative: choose correct approach
+        question: `A ${domain} practitioner needs to complete a task involving "${t}". Which approach is correct?`,
         options: [
-          `A) "${t}" comes first and provides the basis for understanding "${t2}"`,
-          `B) They are unrelated concepts taught in separate modules`,
-          `C) "${t2}" must be learned before "${t}" can be applied`,
-          `D) Only one of them is needed — learners choose which to study`,
+          `A) Apply "${t}" systematically using established ${domain} principles, then verify against "${t2}"`,
+          `B) Skip "${t}" and use "${t3}" instead — they produce the same outcome`,
+          `C) Delegate any task involving "${t}" until "${t4}" has been studied`,
+          `D) Rely on intuition rather than structured knowledge of "${t}"`,
         ],
-        correct: `A) "${t}" comes first and provides the basis for understanding "${t2}"`,
-        explanation: `In ${skill.name}, "${t}" is prerequisite knowledge that makes "${t2}" easier to grasp.`,
+        correct: `A) Apply "${t}" systematically using established ${domain} principles, then verify against "${t2}"`,
+        explanation: `In professional ${domain} work, "${t}" must be applied systematically — not through guesswork. Using "${t3}" as a substitute introduces errors. The correct approach is to apply "${t}" according to its principles, then cross-check with related concepts like "${t2}".`,
       },
       {
-        question: `Why is "${t}" considered essential for mastering ${skill.name}?`,
+        // Mastery indicator: what does knowing this well look like?
+        question: `Which outcome best demonstrates that a ${domain} learner has genuinely mastered "${t}"?`,
         options: [
-          `A) It is foundational — all other ${skill.name} skills are built upon it`,
-          `B) It is only essential for instructors, not learners`,
-          `C) It speeds up ${t4} but has no impact on ${t2}`,
-          `D) Its importance is debated — many practitioners skip it`,
+          `A) They can apply "${t}" correctly in unfamiliar ${domain} scenarios and explain the reasoning behind each step`,
+          `B) They can recite the definition of "${t}" from memory`,
+          `C) They have completed a course that listed "${t}" in its syllabus`,
+          `D) They can identify "${t}" when prompted but cannot yet use it independently`,
         ],
-        correct: `A) It is foundational — all other ${skill.name} skills are built upon it`,
-        explanation: `Mastery of "${t}" gives learners the foundation to progress through ${t2}, ${t3}, and ${t4}.`,
+        correct: `A) They can apply "${t}" correctly in unfamiliar ${domain} scenarios and explain the reasoning behind each step`,
+        explanation: `True mastery of "${t}" in ${domain} means transfer — applying it correctly in new, unseen situations. Memorising definitions or course completion proves familiarity at best. The benchmark is: can you use "${t}" in a real ${domain} task you have not seen before, and justify your approach?`,
       },
     ];
 

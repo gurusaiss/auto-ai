@@ -612,6 +612,362 @@ const RULE_BASE = {
   },
 };
 
+// ── Medicine / Doctor (matched by keyword) ────────────────────────────────
+const MEDICINE_QUIZ = [
+  {
+    id: 'rb_med_q1', skillId: 'human_anatomy', skillName: 'Human Anatomy',
+    concept: 'Anatomy — Brachial Plexus',
+    difficulty: 'basic',
+    question: 'The brachial plexus originates from which spinal cord levels?',
+    type: 'multiple_choice',
+    options: [
+      'A) C5–T1 (cervical 5 through thoracic 1)',
+      'B) C1–C4 only',
+      'C) T1–T6 (thoracic levels)',
+      'D) C7–T2 only',
+    ],
+    correct: 'A) C5–T1 (cervical 5 through thoracic 1)',
+    explanation: 'The brachial plexus arises from the anterior rami of spinal nerves C5, C6, C7, C8, and T1. It supplies motor and sensory innervation to the upper limb. Roots C5-C6 form the upper trunk, C7 forms the middle trunk, and C8-T1 form the lower trunk.',
+    key_concepts: ['brachial plexus', 'spinal cord levels', 'upper limb innervation', 'dermatomes'],
+    score_keywords: ['c5', 't1', 'cervical', 'thoracic', 'brachial'],
+  },
+  {
+    id: 'rb_med_q2', skillId: 'pathology', skillName: 'Pathology & Diagnostics',
+    concept: 'Pathology — Jaundice Classification',
+    difficulty: 'moderate',
+    question: 'A patient has jaundice with elevated indirect (unconjugated) bilirubin, normal liver enzymes, and reticulocytosis on CBC. What is the most likely cause?',
+    type: 'multiple_choice',
+    options: [
+      'A) Hemolytic anemia — red blood cell destruction produces excess indirect bilirubin',
+      'B) Hepatitis — liver inflammation impairs bilirubin conjugation',
+      'C) Choledocholithiasis — gallstones blocking the common bile duct',
+      'D) Gilbert syndrome — mild conjugation defect triggered by fasting',
+    ],
+    correct: 'A) Hemolytic anemia — red blood cell destruction produces excess indirect bilirubin',
+    explanation: 'Pre-hepatic jaundice is caused by excessive RBC destruction (hemolysis), which overwhelms the liver\'s conjugation capacity. Key findings: elevated INDIRECT bilirubin, normal liver enzymes (ALT/AST), reticulocytosis (bone marrow response), and possible splenomegaly. Hepatitis elevates direct + indirect bilirubin with raised AST/ALT.',
+    key_concepts: ['jaundice', 'unconjugated bilirubin', 'hemolytic anemia', 'reticulocytosis'],
+    score_keywords: ['hemolytic', 'indirect bilirubin', 'reticulocytosis', 'rbc', 'pre-hepatic'],
+  },
+  {
+    id: 'rb_med_q3', skillId: 'pharmacology', skillName: 'Pharmacology & Therapeutics',
+    concept: 'Pharmacology — Aspirin Mechanism',
+    difficulty: 'advanced',
+    question: 'Aspirin irreversibly inhibits COX-1 and COX-2. Why does this make it uniquely effective as an antiplatelet agent?',
+    type: 'multiple_choice',
+    options: [
+      'A) Platelets lack a nucleus — they cannot synthesize new COX enzymes, so inhibition lasts for the platelet\'s 7–10 day lifespan',
+      'B) Aspirin only inhibits COX-1 in platelets, sparing COX-2 in endothelial cells entirely',
+      'C) The irreversible inhibition is reversed when aspirin is metabolized within 2 hours',
+      'D) Aspirin inhibits thrombin directly, preventing fibrin clot formation',
+    ],
+    correct: 'A) Platelets lack a nucleus — they cannot synthesize new COX enzymes, so inhibition lasts for the platelet\'s 7–10 day lifespan',
+    explanation: 'Aspirin acetylates the active serine of COX irreversibly. Nucleated cells (like endothelial cells) can synthesize new COX enzymes, so recovery takes hours. But anucleate platelets cannot make new proteins — their COX stays inhibited for their entire 7–10 day lifespan. This is why daily low-dose aspirin has sustained antiplatelet effect.',
+    key_concepts: ['aspirin', 'COX inhibition', 'antiplatelet', 'platelet lifespan', 'anucleate'],
+    score_keywords: ['nucleus', 'anucleate', 'cox', 'lifespan', 'irreversible'],
+  },
+  {
+    id: 'rb_med_q4', skillId: 'clinical_medicine', skillName: 'Clinical Medicine & Diagnosis',
+    concept: 'Clinical Medicine — ECG Interpretation',
+    difficulty: 'practical',
+    question: 'An ECG shows ST elevation in leads II, III, and aVF with reciprocal ST depression in leads I and aVL. Which coronary artery is most likely occluded?',
+    type: 'multiple_choice',
+    options: [
+      'A) Right coronary artery (RCA) — supplies the inferior wall of the left ventricle',
+      'B) Left anterior descending artery (LAD) — supplies the anterior wall',
+      'C) Left circumflex artery (LCx) — supplies the lateral wall',
+      'D) Left main coronary artery — supplies the entire left ventricle',
+    ],
+    correct: 'A) Right coronary artery (RCA) — supplies the inferior wall of the left ventricle',
+    explanation: 'Inferior STEMI (ST elevation in II, III, aVF) is almost always caused by RCA occlusion (in 80% of patients with right-dominant circulation). The RCA supplies the inferior wall, right ventricle, and SA/AV nodes. Reciprocal changes in I and aVL are typical. LAD occlusion causes anterior STEMI (V1-V4); LCx causes lateral STEMI (V5-V6, I, aVL).',
+    key_concepts: ['ECG', 'inferior STEMI', 'RCA', 'coronary artery', 'reciprocal changes'],
+    score_keywords: ['rca', 'inferior', 'st elevation', 'ii iii avf', 'reciprocal'],
+  },
+  {
+    id: 'rb_med_q5', skillId: 'emergency_medicine', skillName: 'Emergency Medicine',
+    concept: 'Emergency Medicine — Shock Management',
+    difficulty: 'real_world',
+    question: 'A 28-year-old trauma patient has BP 80/50 mmHg, HR 130 bpm, cold clammy skin, altered consciousness, and rapid blood loss. What is the immediate management priority?',
+    type: 'multiple_choice',
+    options: [
+      'A) Two large-bore IV lines + aggressive fluid resuscitation with blood products (1:1:1 ratio — packed RBCs:FFP:platelets)',
+      'B) Oral rehydration with ORS and close observation for 30 minutes',
+      'C) IV normal saline 3 litres bolus immediately, then reassess',
+      'D) Start vasopressors (noradrenaline) immediately before fluid resuscitation',
+    ],
+    correct: 'A) Two large-bore IV lines + aggressive fluid resuscitation with blood products (1:1:1 ratio — packed RBCs:FFP:platelets)',
+    explanation: 'This is Class III-IV hemorrhagic shock. ATLS principles: (1) Airway → Breathing → Circulation. For hemorrhagic shock: two large-bore (14-16G) IVs, aggressive volume replacement. Modern damage control resuscitation uses 1:1:1 ratio of PRBCs:FFP:platelets to replace all components lost in whole blood. Normal saline alone can cause dilutional coagulopathy. Vasopressors without volume make it worse.',
+    key_concepts: ['hemorrhagic shock', 'ATLS', 'damage control resuscitation', '1:1:1 ratio', 'blood products'],
+    score_keywords: ['iv lines', 'blood products', '1:1:1', 'hemorrhagic', 'atls'],
+  },
+];
+
+// ── Law / Legal Studies (matched by keyword) ──────────────────────────────
+const LAW_QUIZ = [
+  {
+    id: 'rb_law_q1', skillId: 'contract_law', skillName: 'Contract Law',
+    concept: 'Contract Law — Essentials of Valid Contract',
+    difficulty: 'basic',
+    question: 'Under the Indian Contract Act 1872, which of the following is NOT an essential element of a valid contract?',
+    type: 'multiple_choice',
+    options: [
+      'A) Written documentation — oral contracts are never valid in India',
+      'B) Free consent — consent must be free from coercion, undue influence, or fraud',
+      'C) Lawful consideration — something of value must be exchanged',
+      'D) Competent parties — both must be of legal age and sound mind',
+    ],
+    correct: 'A) Written documentation — oral contracts are never valid in India',
+    explanation: 'Section 10 of the Indian Contract Act defines valid contracts. Essential elements are: offer + acceptance, free consent, competent parties (age 18+, sound mind, not disqualified), lawful consideration, and lawful object. Written documentation is NOT required for most contracts — oral contracts are equally valid unless a specific law requires writing (e.g., sale of land, negotiable instruments).',
+    key_concepts: ['Indian Contract Act 1872', 'valid contract', 'free consent', 'consideration', 'oral contract'],
+    score_keywords: ['written', 'oral', 'section 10', 'consideration', 'consent'],
+  },
+  {
+    id: 'rb_law_q2', skillId: 'constitutional_law', skillName: 'Constitutional Law',
+    concept: 'Constitutional Law — Fundamental Rights',
+    difficulty: 'moderate',
+    question: 'The Supreme Court expanded Article 21 (Right to Life and Personal Liberty) to include which rights through landmark judgments?',
+    type: 'multiple_choice',
+    options: [
+      'A) Right to health, right to education, right to privacy, right to livelihood, and right to a clean environment',
+      'B) Only the right to life in its literal sense — no expansion is constitutionally permissible',
+      'C) Right to vote and right to free speech under Articles 19 and 326',
+      'D) Right to property and right to business — these were originally in Article 21',
+    ],
+    correct: 'A) Right to health, right to education, right to privacy, right to livelihood, and right to a clean environment',
+    explanation: 'Article 21 has been expansively interpreted by the Supreme Court. In Maneka Gandhi (1978), the court moved from a literal to a purposive interpretation. Since then: right to health (Paschim Banga, 1996), right to livelihood (Olga Tellis, 1985), right to education (now Article 21A), right to privacy (Puttaswamy, 2017). This doctrine of "due process" has made A21 the most dynamic fundamental right.',
+    key_concepts: ['Article 21', 'fundamental rights', 'Maneka Gandhi', 'right to privacy', 'Puttaswamy'],
+    score_keywords: ['article 21', 'privacy', 'livelihood', 'maneka gandhi', 'due process'],
+  },
+  {
+    id: 'rb_law_q3', skillId: 'criminal_law', skillName: 'Criminal Law & IPC',
+    concept: 'Criminal Law — IPC Sections',
+    difficulty: 'advanced',
+    question: 'What distinguishes culpable homicide amounting to murder (Section 300 IPC) from culpable homicide NOT amounting to murder (Section 299 IPC)?',
+    type: 'multiple_choice',
+    options: [
+      'A) Under S.300, death is caused with intention to cause death, or with knowledge that the act is imminently dangerous and must cause death — with no exceptions applying',
+      'B) Section 300 requires premeditation of over 24 hours; Section 299 is impulsive killing',
+      'C) The distinction is purely procedural — both carry the same punishment',
+      'D) Section 300 applies only to killing by a weapon; Section 299 covers all other methods',
+    ],
+    correct: 'A) Under S.300, death is caused with intention to cause death, or with knowledge that the act is imminently dangerous and must cause death — with no exceptions applying',
+    explanation: 'The classic test: culpable homicide is the genus; murder is the species. S.300 requires (1) intention to cause death, OR (2) intention to cause injury sufficient in the ordinary course to cause death, OR (3) knowledge that the act is imminently dangerous and must cause death. If Exceptions 1-5 apply (grave provocation, consent, exceeding private defense, etc.), it reduces to S.299. The punishment for S.302 (murder) is death/life imprisonment.',
+    key_concepts: ['IPC Section 300', 'IPC Section 299', 'culpable homicide', 'murder', 'exceptions'],
+    score_keywords: ['section 300', 'section 299', 'intention', 'exception', 'culpable homicide'],
+  },
+  {
+    id: 'rb_law_q4', skillId: 'law_of_torts', skillName: 'Law of Torts',
+    concept: 'Law of Torts — Negligence',
+    difficulty: 'practical',
+    question: 'A surgeon operates on the wrong patient. The patient sues for negligence. What elements must the patient prove?',
+    type: 'multiple_choice',
+    options: [
+      'A) Duty of care (doctor-patient relationship), breach of that duty (operating on wrong patient), causation (the operation caused harm), and resulting damage',
+      'B) Only that the surgery caused harm — duty is assumed in all medical cases',
+      'C) Intention to harm — negligence requires proof of deliberate wrongdoing',
+      'D) That the surgeon was not insured — uninsured practitioners are automatically negligent',
+    ],
+    correct: 'A) Duty of care (doctor-patient relationship), breach of that duty (operating on wrong patient), causation (the operation caused harm), and resulting damage',
+    explanation: 'The four elements of negligence (from Donoghue v Stevenson and later cases): (1) Duty of care — established by the doctor-patient relationship, (2) Breach — operating on the wrong patient clearly falls below the standard of a reasonable medical professional (Bolam test), (3) Causation — the \'but for\' test: but for the negligence, would the damage have occurred? (4) Damage — must be actual harm, not merely the risk of harm. This is called the ABCD of negligence.',
+    key_concepts: ['negligence', 'duty of care', 'breach', 'causation', 'Bolam test'],
+    score_keywords: ['duty', 'breach', 'causation', 'damage', 'bolam'],
+  },
+  {
+    id: 'rb_law_q5', skillId: 'civil_procedure', skillName: 'Civil Procedure & Litigation',
+    concept: 'Procedure — Civil Procedure Code',
+    difficulty: 'real_world',
+    question: 'A client wants to file a money recovery suit for ₹50 lakhs against a Delhi-based defendant in Chennai. What procedural issues arise?',
+    type: 'multiple_choice',
+    options: [
+      'A) Jurisdiction issue — suit must be filed where defendant resides or carries on business, or where cause of action arose (Section 20 CPC); Chennai court may lack territorial jurisdiction',
+      'B) No issue — any High Court in India can hear any civil suit regardless of territorial connection',
+      'C) The suit must always be filed in Delhi because the defendant is based there — no exceptions',
+      'D) Amount above ₹10 lakhs automatically goes to the High Court original side',
+    ],
+    correct: 'A) Jurisdiction issue — suit must be filed where defendant resides or carries on business, or where cause of action arose (Section 20 CPC); Chennai court may lack territorial jurisdiction',
+    explanation: 'Section 20 CPC: suits can be instituted where (a) the defendant resides/carries on business, (b) where the cause of action wholly or partly arose. If the defendant is in Delhi and the cause of action arose in Delhi, Chennai court has no territorial jurisdiction. A preliminary objection on jurisdiction (Order 7 Rule 11) can be raised. The plaintiff would need to file in Delhi or prove part of the cause of action arose in Chennai.',
+    key_concepts: ['Section 20 CPC', 'territorial jurisdiction', 'cause of action', 'defendant residence'],
+    score_keywords: ['section 20', 'cpc', 'jurisdiction', 'territorial', 'cause of action'],
+  },
+];
+
+// ── Civil Engineering (matched by keyword) ────────────────────────────────
+const CIVIL_ENGINEERING_QUIZ = [
+  {
+    id: 'rb_civ_q1', skillId: 'concrete_technology', skillName: 'Concrete Technology',
+    concept: 'Concrete Technology — Grade & Strength',
+    difficulty: 'basic',
+    question: 'What does "M25" concrete grade mean, and what is its characteristic compressive strength?',
+    type: 'multiple_choice',
+    options: [
+      'A) M25 means mix designation; characteristic compressive strength = 25 N/mm² (MPa) at 28 days on 150mm cube specimens',
+      'B) M25 means 25 parts cement in the mix by weight; strength is not defined by grade',
+      'C) M25 has a characteristic strength of 25 kN (kilonewtons) tested on cylindrical specimens',
+      'D) The number 25 represents the water-cement ratio × 100; higher numbers mean weaker concrete',
+    ],
+    correct: 'A) M25 means mix designation; characteristic compressive strength = 25 N/mm² (MPa) at 28 days on 150mm cube specimens',
+    explanation: 'As per IS 456:2000, the M in concrete grade stands for \'Mix\' and the number is the characteristic compressive strength (fck) in N/mm² measured on 150mm cubes at 28 days. M25 is the minimum grade for RCC in severe exposure conditions. For mild exposure, M20 is minimum. M = Mix, not mass or material.',
+    key_concepts: ['M25', 'characteristic compressive strength', 'IS 456', 'cube test', 'fck'],
+    score_keywords: ['m25', 'fck', '25 n/mm', 'is 456', '28 days'],
+  },
+  {
+    id: 'rb_civ_q2', skillId: 'structural_analysis', skillName: 'Structural Analysis',
+    concept: 'Structural Engineering — Beam Theory',
+    difficulty: 'moderate',
+    question: 'A simply supported beam of span 6m carries a UDL of 15 kN/m. What is the maximum bending moment?',
+    type: 'multiple_choice',
+    options: [
+      'A) 67.5 kN·m — at midspan, using formula M = wL²/8 = 15×36/8',
+      'B) 90 kN·m — at midspan, using M = wL²/6',
+      'C) 45 kN·m — at midspan, using M = wL²/12 for simply supported',
+      'D) 135 kN·m — at the supports, where bending moment is maximum for UDL',
+    ],
+    correct: 'A) 67.5 kN·m — at midspan, using formula M = wL²/8 = 15×36/8',
+    explanation: 'For a simply supported beam with UDL (w) over span (L): Maximum BM occurs at midspan = wL²/8 = 15 × (6)² / 8 = 15 × 36 / 8 = 540/8 = 67.5 kN·m. This is one of the most fundamental structural engineering formulas. The BM diagram is parabolic, with zero at supports and maximum at center.',
+    key_concepts: ['simply supported beam', 'UDL', 'bending moment', 'wL²/8', 'midspan'],
+    score_keywords: ['67.5', 'wl2/8', 'midspan', 'udl', 'bending moment'],
+  },
+  {
+    id: 'rb_civ_q3', skillId: 'geotechnical_engineering', skillName: 'Geotechnical Engineering',
+    concept: 'Geotechnical Engineering — Soil Classification',
+    difficulty: 'advanced',
+    question: 'During a site investigation, SPT N-value = 8 is recorded at a depth of 5m. What does this indicate about the soil?',
+    type: 'multiple_choice',
+    options: [
+      'A) Loose sand or soft clay — N < 10 indicates loose/soft soil with low bearing capacity, requiring careful foundation design',
+      'B) Dense gravel — high N-values indicate competent rock-like material',
+      'C) The soil is highly over-consolidated and suitable for heavy structures',
+      'D) N-value has no relationship to soil density — it only measures moisture content',
+    ],
+    correct: 'A) Loose sand or soft clay — N < 10 indicates loose/soft soil with low bearing capacity, requiring careful foundation design',
+    explanation: 'Standard Penetration Test (SPT) N-value classification (IS 2131): N < 4 = very loose/very soft; 4-10 = loose/soft; 10-30 = medium dense; 30-50 = dense; > 50 = very dense/hard rock. N=8 at 5m depth indicates loose sand or soft clay. For structural foundations, N < 10 typically requires larger footings, ground improvement, or deeper pile foundations to reach competent strata.',
+    key_concepts: ['SPT N-value', 'IS 2131', 'bearing capacity', 'loose sand', 'foundation design'],
+    score_keywords: ['spt', 'n-value', 'loose', 'bearing capacity', 'is 2131'],
+  },
+  {
+    id: 'rb_civ_q4', skillId: 'rcc_design', skillName: 'RCC Design',
+    concept: 'RCC Design — Minimum Reinforcement',
+    difficulty: 'practical',
+    question: 'As per IS 456:2000, what is the minimum percentage of longitudinal reinforcement in an RCC column?',
+    type: 'multiple_choice',
+    options: [
+      'A) 0.8% of the gross cross-sectional area of the column',
+      'B) 0.12% — same as minimum reinforcement in slabs',
+      'C) 1.5% — to ensure ductile failure under compression',
+      'D) No minimum requirement — reinforcement is determined only by structural load calculations',
+    ],
+    correct: 'A) 0.8% of the gross cross-sectional area of the column',
+    explanation: 'As per IS 456:2000 Clause 26.5.3.1: minimum longitudinal reinforcement in columns = 0.8% of gross CSA, maximum = 6% (4% at laps). This minimum ensures (1) resistance to unforeseen eccentric loading, (2) column ductility, (3) prevention of sudden brittle failure. If minimum 0.8% gives a larger area than calculated from load, minimum governs.',
+    key_concepts: ['IS 456', 'column reinforcement', '0.8% minimum', 'gross cross-sectional area', 'RCC'],
+    score_keywords: ['0.8%', 'is 456', 'column', 'minimum', 'longitudinal reinforcement'],
+  },
+  {
+    id: 'rb_civ_q5', skillId: 'construction_management', skillName: 'Construction Project Management',
+    concept: 'Project Management — Critical Path Method',
+    difficulty: 'real_world',
+    question: 'A construction project is delayed by 3 weeks because of late steel delivery. The steel erection activity is on the critical path. What is the impact?',
+    type: 'multiple_choice',
+    options: [
+      'A) The overall project completion is delayed by 3 weeks — critical path activities have zero float, so any delay directly extends the project duration',
+      'B) No impact — the contractor can compensate by accelerating non-critical activities',
+      'C) The delay only affects subsequent activities in the same trade, not overall completion',
+      'D) Impact is halved to 1.5 weeks because construction can proceed in parallel on other fronts',
+    ],
+    correct: 'A) The overall project completion is delayed by 3 weeks — critical path activities have zero float, so any delay directly extends the project duration',
+    explanation: 'The Critical Path Method (CPM): the critical path is the longest sequence of activities determining minimum project duration. Activities on the critical path have zero float (no buffer). Any delay to a critical activity = same delay to project completion. The contractor would need to crash other activities, add resources, or negotiate an extension of time (EOT) claim to recover the 3 weeks.',
+    key_concepts: ['critical path', 'CPM', 'float', 'project delay', 'extension of time'],
+    score_keywords: ['critical path', 'zero float', 'cpm', 'delay', 'eot'],
+  },
+];
+
+// ── Finance & Accounting (matched by keyword) ─────────────────────────────
+const FINANCE_ACCOUNTING_QUIZ = [
+  {
+    id: 'rb_fin_q1', skillId: 'financial_statements', skillName: 'Financial Statements & Reporting',
+    concept: 'Financial Statements — Balance Sheet',
+    difficulty: 'basic',
+    question: 'A company has total assets of ₹50 crore and total liabilities of ₹30 crore. What is shareholders equity, and which accounting equation confirms this?',
+    type: 'multiple_choice',
+    options: [
+      'A) Shareholders equity = ₹20 crore — from Assets = Liabilities + Equity → Equity = Assets − Liabilities',
+      'B) Shareholders equity = ₹80 crore — equity equals assets plus liabilities',
+      'C) Shareholders equity = ₹50 crore — it always equals total assets',
+      'D) Shareholders equity cannot be calculated without the profit & loss statement',
+    ],
+    correct: 'A) Shareholders equity = ₹20 crore — from Assets = Liabilities + Equity → Equity = Assets − Liabilities',
+    explanation: 'The fundamental accounting equation: Assets = Liabilities + Shareholders Equity. Rearranging: Equity = Assets − Liabilities = ₹50Cr − ₹30Cr = ₹20Cr. This represents what shareholders own after all debts are paid. Components of equity: share capital + retained earnings + reserves. This is the foundation of every balance sheet.',
+    key_concepts: ['accounting equation', 'shareholders equity', 'balance sheet', 'assets', 'liabilities'],
+    score_keywords: ['accounting equation', 'equity', 'assets minus liabilities', '20 crore', 'balance sheet'],
+  },
+  {
+    id: 'rb_fin_q2', skillId: 'cash_flow_analysis', skillName: 'Cash Flow Analysis',
+    concept: 'Cash Flow — Depreciation Add-back',
+    difficulty: 'moderate',
+    question: 'In the indirect method of cash flow from operations, depreciation (₹5 lakh) is ADDED BACK to net profit. Why?',
+    type: 'multiple_choice',
+    options: [
+      'A) Depreciation is a non-cash expense — it reduced net profit without any actual cash outflow, so it must be reversed',
+      'B) Depreciation represents cash paid to the government as a tax deduction',
+      'C) Adding depreciation corrects for double-counting when fixed assets are sold',
+      'D) Depreciation creates a cash reserve that should be reported as operating cash flow',
+    ],
+    correct: 'A) Depreciation is a non-cash expense — it reduced net profit without any actual cash outflow, so it must be reversed',
+    explanation: 'Depreciation allocates the cost of a fixed asset over its useful life (matching principle), reducing P&L profit. But NO cash is paid for depreciation — the cash was spent when the asset was purchased (shown in investing activities). Indirect method starts with net profit and adjusts for non-cash items. Adding back depreciation recovers the cash that was "deducted" in the income statement without a corresponding outflow.',
+    key_concepts: ['depreciation', 'non-cash expense', 'indirect method', 'cash flow from operations', 'add-back'],
+    score_keywords: ['non-cash', 'depreciation', 'add back', 'indirect method', 'net profit'],
+  },
+  {
+    id: 'rb_fin_q3', skillId: 'equity_valuation', skillName: 'Equity Valuation & Investment',
+    concept: 'Valuation — P/E Ratio',
+    difficulty: 'advanced',
+    question: 'Stock A has a P/E of 8; Stock B has a P/E of 35. Both are profitable companies in the same sector. What does the difference most likely indicate?',
+    type: 'multiple_choice',
+    options: [
+      'A) Market expects Stock B to grow earnings much faster — investors pay a premium for growth; Stock A may be undervalued or a value trap',
+      'B) Stock A is always the better investment since it costs less per unit of earnings',
+      'C) P/E above 30 is always a bubble — Stock B is overvalued by definition',
+      'D) Stock B has 35 times more profit than Stock A',
+    ],
+    correct: 'A) Market expects Stock B to grow earnings much faster — investors pay a premium for growth; Stock A may be undervalued or a value trap',
+    explanation: 'P/E = Price ÷ EPS. A high P/E means investors are paying more per rupee of current earnings, pricing in future growth. Stock B\'s P/E of 35 suggests high growth expectations (common in tech/pharma). Stock A\'s P/E of 8 could mean: (a) it\'s undervalued — a potential buy, OR (b) low growth / declining business / value trap. P/E must be compared to: growth rate (PEG ratio), sector average, and historical P/E of the same company.',
+    key_concepts: ['P/E ratio', 'valuation', 'growth premium', 'value trap', 'PEG ratio'],
+    score_keywords: ['p/e', 'growth', 'premium', 'value trap', 'undervalued'],
+  },
+  {
+    id: 'rb_fin_q4', skillId: 'financial_ratios', skillName: 'Financial Ratio Analysis',
+    concept: 'Ratio Analysis — Working Capital',
+    difficulty: 'practical',
+    question: 'A manufacturing company has Current Assets of ₹80L, Current Liabilities of ₹50L, and Inventory of ₹40L. Calculate the Quick Ratio and assess liquidity.',
+    type: 'multiple_choice',
+    options: [
+      'A) Quick Ratio = (80−40)/50 = 0.8 — below 1.0, indicating potential short-term liquidity risk if inventory cannot be quickly converted to cash',
+      'B) Quick Ratio = 80/50 = 1.6 — strong liquidity with no concern',
+      'C) Quick Ratio = 40/50 = 0.8 — inventory divided by current liabilities',
+      'D) Quick Ratio = (80+40)/50 = 2.4 — total assets including inventory divided by liabilities',
+    ],
+    correct: 'A) Quick Ratio = (80−40)/50 = 0.8 — below 1.0, indicating potential short-term liquidity risk if inventory cannot be quickly converted to cash',
+    explanation: 'Quick Ratio (Acid Test) = (Current Assets − Inventory) / Current Liabilities. Inventory is excluded because it may not be quickly convertible to cash. QR = (80−40)/50 = 40/50 = 0.8. Below 1.0 means the company cannot cover all current liabilities from liquid assets (cash, receivables). Current Ratio = 80/50 = 1.6 looks healthy, but QR reveals inventory dependency. For manufacturing, this requires monitoring inventory turnover carefully.',
+    key_concepts: ['quick ratio', 'acid test', 'current ratio', 'inventory', 'liquidity'],
+    score_keywords: ['quick ratio', '0.8', 'inventory', 'acid test', 'liquidity'],
+  },
+  {
+    id: 'rb_fin_q5', skillId: 'taxation', skillName: 'Taxation & Compliance',
+    concept: 'Taxation — Income Tax Slabs',
+    difficulty: 'real_world',
+    question: 'A startup CFO must decide: should the company pay dividends (taxed at shareholder level) or reinvest profits (taxed as corporate income)? What tax principle governs this decision?',
+    type: 'multiple_choice',
+    options: [
+      'A) Double taxation of dividends — profits are taxed at corporate rate (22-30%), then dividends are taxed again in shareholders hands; reinvestment defers shareholder-level tax',
+      'B) Dividends are always tax-free for shareholders under Section 10 of the Income Tax Act',
+      'C) There is no tax difference — corporate and dividend taxes cancel each other out',
+      'D) Reinvesting profits is illegal if the company is profitable — dividends must be declared annually',
+    ],
+    correct: 'A) Double taxation of dividends — profits are taxed at corporate rate (22-30%), then dividends are taxed again in shareholders hands; reinvestment defers shareholder-level tax',
+    explanation: 'India\'s classical system (post-2020 DDT removal): corporate profit is taxed at 22% (Section 115BAA) or 30% standard rate. When distributed as dividends, shareholders pay tax at their applicable slab rate (added to income). This creates effective double taxation. Reinvesting profits defers shareholder-level tax until eventual exit (capital gains). Growth companies typically retain earnings; mature cash-generating companies pay dividends. CFO must model the net after-tax return to shareholders under both scenarios.',
+    key_concepts: ['double taxation', 'dividend distribution', 'Section 115BAA', 'corporate tax', 'capital gains'],
+    score_keywords: ['double taxation', 'dividend', 'corporate rate', 'ddt', 'reinvestment'],
+  },
+];
+
 // ── Chip / VLSI Design (niche — no standard domain ID, matched by keyword) ─
 const CHIP_DESIGN_QUIZ = [
   {
@@ -711,6 +1067,10 @@ function hasQuiz(domainId, goalText = '') {
   // Check by goal text for niche domains
   const lower = (goalText || '').toLowerCase();
   if (/chip|vlsi|rtl|verilog|vhdl|fpga|asic|semiconductor|hardware design/.test(lower)) return true;
+  if (/doctor|mbbs|medicine|medical|physician|surgeon|clinical|anatomy|physiology|pharmacology|healthcare/.test(lower)) return true;
+  if (/\blaw\b|lawyer|legal|llb|attorney|advocate|judiciary|ipc|constitution/.test(lower)) return true;
+  if (/civil engineering|structural engineering|construction|concrete|rcc|reinforced|geotechnical|highway engineering/.test(lower)) return true;
+  if (/\bfinance\b|accounting|investment banking|stock market|balance sheet|equity|valuation|portfolio|ca\b|chartered accountant|cfa/.test(lower)) return true;
   return false;
 }
 
@@ -724,6 +1084,26 @@ function getQuiz(domainId, goalText = '') {
   // Check for chip/VLSI
   if (/chip|vlsi|rtl|verilog|vhdl|fpga|asic|semiconductor|hardware design/.test(lower)) {
     return CHIP_DESIGN_QUIZ.slice(0, 5);
+  }
+
+  // Check for medicine/doctor
+  if (/doctor|mbbs|medicine|medical|physician|surgeon|clinical|anatomy|physiology|pharmacology|healthcare/.test(lower)) {
+    return MEDICINE_QUIZ.slice(0, 5);
+  }
+
+  // Check for law/legal
+  if (/\blaw\b|lawyer|legal|llb|attorney|advocate|judiciary|ipc|constitution/.test(lower)) {
+    return LAW_QUIZ.slice(0, 5);
+  }
+
+  // Check for civil engineering
+  if (/civil engineering|structural engineering|construction|concrete|rcc|reinforced|geotechnical|highway engineering/.test(lower)) {
+    return CIVIL_ENGINEERING_QUIZ.slice(0, 5);
+  }
+
+  // Check for finance/accounting
+  if (/\bfinance\b|accounting|investment banking|stock market|balance sheet|equity|valuation|portfolio|ca\b|chartered accountant|cfa/.test(lower)) {
+    return FINANCE_ACCOUNTING_QUIZ.slice(0, 5);
   }
 
   const entry = RULE_BASE[domainId];
@@ -747,6 +1127,58 @@ function getCareerMeta(domainId, goalText = '') {
         { label: 'NPTEL Digital Circuits', url: 'https://nptel.ac.in/', icon: '🎓' },
         { label: 'EDAPlayground', url: 'https://www.edaplayground.com/', icon: '⚙️' },
         { label: 'ChipVerify', url: 'https://www.chipverify.com/', icon: '✅' },
+      ],
+    };
+  }
+  if (/doctor|mbbs|medicine|medical|physician|surgeon|clinical|anatomy|physiology|pharmacology|healthcare/.test(lower)) {
+    return {
+      label: 'Medicine / MBBS',
+      icon: '🩺',
+      careerPaths: ['Medical Doctor (MBBS)', 'Surgeon', 'Clinical Specialist', 'Research Physician', 'Public Health Officer'],
+      resources: [
+        { label: 'Amboss Medical Knowledge', url: 'https://www.amboss.com/', icon: '📖' },
+        { label: 'NPTEL Physiology Lectures', url: 'https://nptel.ac.in/', icon: '🎓' },
+        { label: 'Radiopaedia (Radiology)', url: 'https://radiopaedia.org/', icon: '🔬' },
+        { label: 'Medscape Reference', url: 'https://reference.medscape.com/', icon: '✅' },
+      ],
+    };
+  }
+  if (/\blaw\b|lawyer|legal|llb|attorney|advocate|judiciary|ipc|constitution/.test(lower)) {
+    return {
+      label: 'Law / Legal Studies',
+      icon: '⚖️',
+      careerPaths: ['Advocate / Lawyer', 'Judicial Officer / Judge', 'Legal Counsel (Corporate)', 'Public Prosecutor', 'Legal Researcher'],
+      resources: [
+        { label: 'Indian Kanoon (Case Law)', url: 'https://indiankanoon.org/', icon: '📖' },
+        { label: 'SCC Online (Legal Database)', url: 'https://www.scconline.com/', icon: '🎓' },
+        { label: 'Bar & Bench (Legal News)', url: 'https://www.barandbench.com/', icon: '📰' },
+        { label: 'NLSIU Open Access Resources', url: 'https://www.nls.ac.in/', icon: '✅' },
+      ],
+    };
+  }
+  if (/civil engineering|structural engineering|construction|concrete|rcc|reinforced|geotechnical|highway engineering/.test(lower)) {
+    return {
+      label: 'Civil Engineering',
+      icon: '🏗️',
+      careerPaths: ['Structural Engineer', 'Site Engineer', 'Geotechnical Engineer', 'Project Manager', 'Highway Engineer'],
+      resources: [
+        { label: 'IS Codes (BIS Portal)', url: 'https://www.bis.gov.in/', icon: '📖' },
+        { label: 'NPTEL Civil Engineering', url: 'https://nptel.ac.in/', icon: '🎓' },
+        { label: 'Civil Engineering Portal', url: 'https://www.engineeringcivil.com/', icon: '🔧' },
+        { label: 'IRC Standards', url: 'https://irc.nic.in/', icon: '🛣️' },
+      ],
+    };
+  }
+  if (/\bfinance\b|accounting|investment banking|stock market|balance sheet|equity|valuation|portfolio|ca\b|chartered accountant|cfa/.test(lower)) {
+    return {
+      label: 'Finance & Accounting',
+      icon: '📊',
+      careerPaths: ['Chartered Accountant (CA)', 'Financial Analyst', 'Investment Banker', 'Portfolio Manager', 'CFO / Finance Manager'],
+      resources: [
+        { label: 'ICAI Study Material', url: 'https://www.icai.org/', icon: '📖' },
+        { label: 'CFA Institute Resources', url: 'https://www.cfainstitute.org/', icon: '🎓' },
+        { label: 'Investopedia', url: 'https://www.investopedia.com/', icon: '📈' },
+        { label: 'NSE Learning (NCFM)', url: 'https://www.nseindia.com/learn', icon: '💹' },
       ],
     };
   }

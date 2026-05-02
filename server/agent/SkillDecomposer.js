@@ -76,48 +76,60 @@ class SkillDecomposer {
 
   // ── Gemini-powered universal decomposition ─────────────────────────────────
   async decomposeWithLLM(goalText) {
-    const prompt = `You are an expert learning architect. A user wants to: "${goalText}"
+    const prompt = `You are an expert curriculum architect. A user wants to: "${goalText}"
 
-Analyze this goal and return a complete skill tree as JSON. This must work for ANY domain on earth — tailoring, cooking, music, law, medicine, martial arts, agriculture, languages, sports, etc.
+Build a REAL skill tree for this EXACT domain. Do NOT generate generic or software-development skills unless the goal is explicitly about software/coding.
 
-Return ONLY valid JSON with this exact structure:
+CORRECT examples:
+- "I want to be a Doctor" → skills: Human Anatomy, Physiology & Biochemistry, Pathology & Microbiology, Pharmacology & Therapeutics, Clinical Medicine & Diagnosis
+- "I want to be a Lawyer" → skills: Constitutional Law, Contract & Tort Law, Criminal Law & IPC, Civil Procedure & Evidence, Legal Drafting & Practice
+- "I want to learn cooking" → skills: Knife Skills & Kitchen Safety, Classical Cooking Methods, Sauce & Flavour Science, Pastry & Baking, Menu Design & Plating
+- "I want to learn guitar" → skills: Music Theory & Notation, Chord Shapes & Transitions, Scales & Improvisation, Rhythm & Strumming Patterns, Performance & Song Learning
+
+Return ONLY valid JSON:
 {
   "domain": "snake_case_domain_id",
   "domainLabel": "Human Readable Domain Name",
   "domainIcon": "single relevant emoji",
   "profile": {
-    "targetRole": "what they want to become",
+    "targetRole": "what they want to become (e.g. Doctor, Lawyer, Chef, Engineer)",
     "learnerLevel": "beginner|intermediate|advanced",
     "intensity": "accelerated|balanced|deep",
-    "detectedTools": ["tool1", "tool2"],
-    "focusKeywords": ["keyword1", "keyword2", "keyword3"]
+    "detectedTools": ["real domain tools/instruments/materials"],
+    "focusKeywords": ["domain-specific keyword1", "domain-specific keyword2"]
   },
   "skills": [
     {
       "id": "snake_case_skill_id",
-      "name": "Skill Display Name",
-      "description": "What this skill covers and why it matters",
+      "name": "Real Subject Name (e.g. Human Anatomy, Contract Law, Knife Skills)",
+      "description": "What this skill covers and why it is essential to reach the goal",
       "level": "beginner|intermediate|advanced",
-      "days": 4,
-      "topics": ["specific topic 1", "specific topic 2", "specific topic 3", "specific topic 4", "specific topic 5"],
-      "reason": "Why this skill is critical for their goal"
+      "days": 5,
+      "topics": [
+        "named real concept 1 (e.g. 'brachial plexus innervation', 'consideration in contract', 'julienne cut technique')",
+        "named real concept 2",
+        "named real concept 3",
+        "named real concept 4",
+        "named real concept 5"
+      ],
+      "reason": "Why this skill is critical for becoming a [targetRole]"
     }
   ],
   "totalEstimatedDays": 35
 }
 
-Rules:
+STRICT RULES:
 - 4 to 6 skills, ordered foundational → advanced
-- Skills must be 100% specific to the domain (no generic "foundations" — name the real skills)
-- Topics must be real, domain-specific concepts (e.g. for tailoring: "seam allowance", "bias cut", not "core concepts")
-- days: 3 to 10 per skill
+- Skill names = the REAL subjects taught in this domain (e.g. Anatomy, Pharmacology for Doctor — NOT "Foundations", "Intermediate Level")
+- Topics = real named concepts professionals actually know (e.g. "glomerular filtration rate", "mens rea", "mise en place")
+- NEVER use generic topic names like "core concepts", "fundamentals overview", "introduction to the field", "basic skills"
+- days: 4–10 per skill
 - totalEstimatedDays: sum of all skill days
-- learnerLevel: infer from goal text (words like "beginner", "from scratch" → beginner)
-- detectedTools: real tools/materials used in that domain`;
+- detectedTools: real instruments/equipment/materials (stethoscope for doctor, lathe for machinist, Figma for designer)`;
 
     try {
       const result = await GeminiService.generateJSON(prompt,
-        'You are an expert curriculum designer. Return only valid JSON. Be specific to the exact domain — not generic.');
+        `You are an expert curriculum designer for the domain in the user's goal. Return only valid JSON with REAL domain-specific skill names and topic names. Absolutely no generic placeholders.`);
 
       if (result && result.skills && result.skills.length >= 3) {
         console.log(`[SkillDecomposer] Gemini decomposed "${goalText}" → ${result.domainLabel} (${result.skills.length} skills)`);
@@ -196,6 +208,43 @@ Rules:
         practical:   ['shading techniques (hatching, blending)', 'sketching from observation', 'gesture drawing', 'color mixing (primary, secondary)', 'composition basics'],
         intermediate:['portrait anatomy (facial proportions)', 'figure drawing and anatomy', 'digital drawing tools', 'color theory and harmony', 'texture rendering'],
         advanced:    ['character design and stylisation', 'storytelling through illustration', 'developing a personal style', 'portfolio curation', 'client brief and commercial work']
+      };
+    }
+
+    // Medicine / Doctor
+    if (/doctor|mbbs|medicine|medical|physician|surgeon|clinical|anatomy|physiology|pathology|pharmacology|healthcare/.test(s + t)) {
+      return {
+        foundations: ['human anatomy (skeletal, muscular, nervous systems)', 'cell biology and histology', 'medical terminology and nomenclature', 'physiology (cardiovascular, respiratory, renal)', 'biochemistry — enzymes, metabolism, genetics'],
+        practical:   ['clinical examination skills (inspection, palpation, percussion, auscultation)', 'reading and interpreting ECG', 'blood pressure measurement and vitals assessment', 'interpreting lab reports (CBC, LFT, KFT, lipid profile)', 'patient history taking (SOAP format)'],
+        intermediate:['pathology — disease mechanisms and tissue changes', 'pharmacology — drug classes, mechanisms, side effects', 'microbiology — bacteria, viruses, fungi, parasites', 'radiology basics — X-ray, CT, MRI interpretation', 'clinical diagnosis — differential diagnosis formulation'],
+        advanced:    ['clinical medicine — internal medicine, surgery, OB-GYN, pediatrics', 'emergency medicine and trauma protocols (ATLS, ACLS)', 'surgical techniques and sterile field principles', 'evidence-based medicine and clinical trials', 'medical ethics, consent, and medicolegal issues']
+      };
+    }
+    // Law / Legal Studies
+    if (/\blaw\b|lawyer|legal|llb|attorney|advocate|judiciary|constitution|legal studies/.test(s + t)) {
+      return {
+        foundations: ['sources of law — legislation, case law, custom, equity', 'Indian Constitution — fundamental rights, directive principles', 'Contract Act 1872 — offer, acceptance, consideration, capacity', 'legal terminology — jurisdiction, locus standi, res judicata, estoppel', 'court hierarchy — district courts, high courts, Supreme Court'],
+        practical:   ['drafting legal notices and plaints', 'reading and analyzing bare acts and judgments', 'IPC 1860 — crimes against person, property, state', 'Consumer Protection Act — filing consumer complaints', 'family law — marriage, divorce, maintenance, inheritance'],
+        intermediate:['Code of Civil Procedure (CPC) — suits, appeals, revision', 'Code of Criminal Procedure (CrPC) — FIR, bail, trial stages', 'law of evidence — admissibility, burden of proof, witness examination', 'property law — transfer of property, easements, mortgages', 'company law — incorporation, directors, winding up'],
+        advanced:    ['constitutional litigation and public interest law (PIL)', 'arbitration and alternative dispute resolution (ADR)', 'intellectual property law — patents, copyright, trademarks', 'taxation law — direct and indirect taxes, GST framework', 'international law — treaties, WTO, human rights conventions']
+      };
+    }
+    // Civil Engineering
+    if (/civil engineering|structural|construction|concrete|rcc|surveying|geotechnical|highway|rebar/.test(s + t)) {
+      return {
+        foundations: ['engineering mechanics — statics, free body diagrams, equilibrium', 'mechanics of materials — stress, strain, Young\'s modulus', 'fluid mechanics — flow types, Bernoulli\'s theorem, pipe flow', 'surveying — levelling, theodolite, contour mapping, EDM', 'engineering drawing and AutoCAD basics'],
+        practical:   ['concrete mix design — IS 10262, water-cement ratio, workability', 'reinforcement detailing — cover, bar bending schedule, hooks', 'soil testing — Proctor compaction, CBR, shear strength parameters', 'construction materials — cement grades, steel types (Fe415/500)', 'site supervision — shuttering, pouring, curing, de-shuttering'],
+        intermediate:['structural analysis — beams, columns, slabs, frames', 'RCC design — IS 456, limit state design, BM and SF diagrams', 'foundation engineering — footings, piles, raft foundations', 'highway engineering — pavement design, IRC standards', 'water supply and sanitation engineering'],
+        advanced:    ['advanced structural design — multi-storey frames, seismic design (IS 1893)', 'pre-stressed concrete — pre-tensioning, post-tensioning', 'project management — CPM, PERT, cost estimation, BOQ', 'environmental engineering — wastewater treatment, EIA', 'infrastructure project tendering and contracts (FIDIC)']
+      };
+    }
+    // Finance / Accounting
+    if (/\bfinance\b|accounting|investment|stock|balance sheet|equity|valuation|portfolio|ca\b|chartered accountant|cfa|financial/.test(s + t)) {
+      return {
+        foundations: ['accounting equation — assets, liabilities, equity', 'double-entry bookkeeping — debit, credit, journal entries', 'financial statements — P&L, balance sheet, cash flow statement', 'time value of money — PV, FV, NPV, IRR', 'basic taxation — income tax slabs, TDS, GST overview'],
+        practical:   ['ratio analysis — liquidity, profitability, leverage, efficiency ratios', 'budgeting and variance analysis', 'working capital management — receivables, payables, inventory cycle', 'bank reconciliation and trial balance preparation', 'reading annual reports and investor presentations'],
+        intermediate:['financial modelling — DCF valuation, 3-statement model', 'equity research — P/E, EV/EBITDA, comparable company analysis', 'cost accounting — absorption, marginal, standard costing', 'investment analysis — bonds, equities, mutual funds, derivatives basics', 'corporate finance — capital structure, WACC, dividend policy'],
+        advanced:    ['advanced valuation — LBO, merger modelling, precedent transactions', 'derivatives and risk management — options, futures, hedging strategies', 'portfolio management — CAPM, MPT, factor models, portfolio optimization', 'audit and assurance — audit planning, risk assessment, audit evidence', 'regulatory framework — SEBI, RBI, Companies Act 2013, Ind AS/IFRS']
       };
     }
 
