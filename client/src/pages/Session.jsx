@@ -305,14 +305,16 @@ export default function Session() {
   const wordCount = useMemo(() => response.trim() ? response.trim().split(/\s+/).length : 0, [response]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!userId) { navigate('/'); return; }
     api.getChallenge(userId, day)
       .then(payload => {
-        setData(payload);
-        setPhase('confidence');
+        if (!cancelled) { setData(payload); setPhase('confidence'); }
       })
-      .catch(e => { setError(e.message); setPhase('error'); });
-  }, [day, userId, navigate]);
+      .catch(e => { if (!cancelled) { setError(e.message); setPhase('error'); } });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [day, userId]);
 
   const handleSubmit = async () => {
     if (wordCount < 8) return;
