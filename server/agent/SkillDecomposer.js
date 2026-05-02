@@ -49,8 +49,13 @@ class SkillDecomposer {
     for (const [domainId, keywords] of Object.entries(this.domainKeywords)) {
       scores[domainId] = 0;
       for (const keyword of keywords) {
-        if (lowerGoal.includes(keyword)) {
-          scores[domainId] += keyword.includes(' ') ? 2 : 1;
+        // Use word-boundary matching to avoid "ai" matching inside "tailor", etc.
+        const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const pattern = keyword.includes(' ')
+          ? new RegExp(escaped, 'i')                    // multi-word: substring ok
+          : new RegExp(`\\b${escaped}\\b`, 'i');         // single word: whole word only
+        if (pattern.test(lowerGoal)) {
+          scores[domainId] += keyword.includes(' ') ? 3 : 1;
         }
       }
     }
