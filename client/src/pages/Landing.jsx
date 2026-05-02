@@ -116,7 +116,8 @@ export default function Landing() {
       const data = await api.createGoal({ goalText });
       localStorage.setItem('skillforge:userId', data.userId);
       localStorage.setItem('skillforge:goalResponse', JSON.stringify(data));
-      navigate('/diagnostic', { state: data });
+      // Go to profiling first, then quiz
+      navigate('/profiling', { state: data });
     } catch (err) {
       setError(err.message);
     } finally {

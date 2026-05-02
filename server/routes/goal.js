@@ -10,8 +10,8 @@ const agent = new SmartAgent();
  */
 router.post('/', async (req, res) => {
   try {
-    const { goalText } = req.body;
-    
+    const { goalText, profilingData } = req.body;
+
     // Validate goal text
     if (!goalText || goalText.length < 5 || goalText.length > 500) {
       return res.status(400).json({
@@ -20,9 +20,9 @@ router.post('/', async (req, res) => {
         error: 'Goal text must be between 5 and 500 characters'
       });
     }
-    
-    // Process goal
-    const result = await agent.processGoal(goalText);
+
+    // Process goal — pass profiling data if provided
+    const result = await agent.processGoal(goalText, null, profilingData || null);
     
     res.json({
       success: true,

@@ -246,8 +246,115 @@ function RecentSessions({ sessions }) {
   );
 }
 
+// ── Career overview panel ─────────────────────────────────────────────────────
+function CareerOverview({ goal, sessions }) {
+  const profiling = (() => {
+    try { return JSON.parse(localStorage.getItem('skillforge:profiling') || 'null'); } catch { return null; }
+  })();
+
+  const avgScore = sessions.length
+    ? Math.round(sessions.reduce((s, r) => s + r.score, 0) / sessions.length)
+    : null;
+
+  const gapLevel =
+    !avgScore ? 'Not assessed yet' :
+    avgScore >= 80 ? 'Minimal — strong foundation' :
+    avgScore >= 60 ? 'Moderate — key areas to strengthen' :
+    'Significant — structured practice needed';
+
+  const resources = [
+    { label: 'Official Docs / Guides', url: 'https://developer.mozilla.org/', icon: '📖' },
+    { label: 'freeCodeCamp — Free Courses', url: 'https://www.freecodecamp.org/', icon: '🎓' },
+    { label: 'The Odin Project', url: 'https://www.theodinproject.com/', icon: '⚔️' },
+    { label: 'Exercism — Practice Exercises', url: 'https://exercism.org/', icon: '💪' },
+  ];
+
+  const projects = goal?.skills?.slice(0, 4).map((s, i) => ({
+    title: `${['Beginner', 'Intermediate', 'Advanced', 'Portfolio'][i] || 'Project'}: ${s.name}`,
+    desc: `Build a project that applies your ${s.name} skills — covering: ${(s.topics || []).slice(0, 2).join(', ')}.`,
+    level: ['🟢', '🟡', '🔴', '🏆'][i] || '🔵',
+  })) || [];
+
+  return (
+    <div className="space-y-5">
+      {/* Career analysis */}
+      <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
+        <h3 className="text-xs font-black text-indigo-400 uppercase tracking-widest mb-3">Career Analysis</h3>
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-slate-500 mb-0.5">Target Role</p>
+            <p className="text-slate-200 font-bold capitalize">{goal?.profile?.targetRole || goal?.domainLabel || '—'}</p>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-slate-500 mb-0.5">Domain</p>
+            <p className="text-slate-200 font-bold">{goal?.domainLabel || '—'}</p>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-slate-500 mb-0.5">Learner Level</p>
+            <p className="text-slate-200 font-bold capitalize">{profiling?.experience || goal?.profile?.learnerLevel || '—'}</p>
+          </div>
+          <div className="bg-slate-800/50 rounded-lg p-3">
+            <p className="text-slate-500 mb-0.5">Intensity</p>
+            <p className="text-slate-200 font-bold capitalize">{goal?.profile?.intensity || '—'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Skill gap */}
+      <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+        <h3 className="text-xs font-black text-amber-400 uppercase tracking-widest mb-2">Skill Gap</h3>
+        <p className="text-xs text-amber-200/80 mb-3">{gapLevel}</p>
+        <div className="space-y-2">
+          {(goal?.skills || []).map(s => (
+            <div key={s.id} className="flex items-center gap-2 text-xs">
+              <span className="text-slate-500 w-28 truncate flex-shrink-0">{s.name}</span>
+              <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-700"
+                  style={{ width: `${Math.max(s.mastery, 2)}%`, backgroundColor: s.mastery >= 75 ? '#10b981' : s.mastery >= 50 ? '#6366f1' : '#f59e0b' }} />
+              </div>
+              <span className="w-8 text-right font-mono font-bold text-slate-400">{s.mastery}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Suggested projects */}
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <h3 className="text-xs font-black text-emerald-400 uppercase tracking-widest mb-3">Suggested Projects</h3>
+        <div className="space-y-2">
+          {projects.map((p, i) => (
+            <div key={i} className="flex items-start gap-2.5 rounded-lg bg-slate-800/40 px-3 py-2.5 text-xs">
+              <span className="text-base flex-shrink-0 mt-0.5">{p.level}</span>
+              <div>
+                <p className="text-slate-200 font-bold">{p.title}</p>
+                <p className="text-slate-500 mt-0.5 leading-relaxed">{p.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Resources */}
+      <div className="rounded-xl border border-slate-700/40 bg-slate-800/20 p-4">
+        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Learning Resources</h3>
+        <div className="space-y-2">
+          {resources.map((r, i) => (
+            <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2.5 rounded-lg bg-slate-800/50 px-3 py-2 text-xs hover:bg-slate-700/50 transition-colors group">
+              <span className="text-base">{r.icon}</span>
+              <span className="text-slate-300 group-hover:text-white transition-colors font-medium">{r.label}</span>
+              <span className="ml-auto text-slate-600 group-hover:text-slate-400">↗</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── TABS ──────────────────────────────────────────────────────────────────────
 const TABS = [
+  { id: 'overview',   label: 'Overview',   icon: '🗺️' },
   { id: 'plan',       label: 'Plan',       icon: '📅' },
   { id: 'skills',     label: 'Skills',     icon: '🌳' },
   { id: 'performance',label: 'Performance',icon: '📈' },
@@ -262,8 +369,20 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [launching, setLaunching] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState('plan');
+  const [activeTab, setActiveTab] = useState('overview');
   const navigate = useNavigate();
+
+  // ── ALL hooks must run BEFORE any conditional return ─────────────────────
+  // useMemo here (not after the if-guards below) — avoids "Rendered more hooks
+  // than during the previous render" when dashboard flips null → object.
+  const avgTrend = useMemo(() => {
+    const s = dashboard?.sessions || [];
+    if (s.length < 4) return null;
+    const half = Math.floor(s.length / 2);
+    const early = s.slice(0, half).reduce((sum, r) => sum + r.score, 0) / half;
+    const late  = s.slice(-half).reduce((sum, r) => sum + r.score, 0) / half;
+    return Math.round(late - early);
+  }, [dashboard]);
 
   useEffect(() => {
     const userId = localStorage.getItem('skillforge:userId');
@@ -302,14 +421,6 @@ export default function Dashboard() {
   const total = learningPlan.length;
   const completionPct = total ? Math.round((completed / total) * 100) : 0;
   const todaysMission = learningPlan.find(d => !d.completed);
-
-  const avgTrend = useMemo(() => {
-    if (sessions.length < 4) return null;
-    const half = Math.floor(sessions.length / 2);
-    const early = sessions.slice(0, half).reduce((s, r) => s + r.score, 0) / half;
-    const late  = sessions.slice(-half).reduce((s, r) => s + r.score, 0) / half;
-    return Math.round(late - early);
-  }, [sessions]);
 
   return (
     <div className="min-h-screen px-4 py-6 max-w-6xl mx-auto space-y-5">
@@ -392,6 +503,11 @@ export default function Dashboard() {
 
         {/* Tab content */}
         <div className="p-5">
+
+          {/* OVERVIEW TAB */}
+          {activeTab === 'overview' && (
+            <CareerOverview goal={goal} sessions={sessions} />
+          )}
 
           {/* PLAN TAB */}
           {activeTab === 'plan' && (

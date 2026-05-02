@@ -36,7 +36,7 @@ class SmartAgent {
   }
 
   // ── processGoal ───────────────────────────────────────────────────────────
-  async processGoal(goalText, existingUserId) {
+  async processGoal(goalText, existingUserId, profilingData = null) {
     const userId = existingUserId || randomUUID();
 
     // SkillDecomposer is now async (Gemini-powered)
@@ -87,6 +87,22 @@ class SmartAgent {
       },
     ];
 
+    // Merge profiling data into learner profile for personalization
+    if (profilingData) {
+      skillTree.profile.education     = profilingData.education || skillTree.profile.learnerLevel;
+      skillTree.profile.experience    = profilingData.experience || skillTree.profile.learnerLevel;
+      skillTree.profile.toolExposure  = profilingData.toolExposure || 'unknown';
+      skillTree.profile.practicalExp  = profilingData.practicalExp || 'none';
+      // Refine learner level from profiling
+      if (/advanced|real.world|professional/i.test(profilingData.experience || '')) {
+        skillTree.profile.learnerLevel = 'advanced';
+      } else if (/moderate|basic/i.test(profilingData.experience || '')) {
+        skillTree.profile.learnerLevel = 'intermediate';
+      } else if (/beginner|none|new/i.test(profilingData.experience || '')) {
+        skillTree.profile.learnerLevel = 'beginner';
+      }
+    }
+
     const session = {
       userId,
       goal: {
@@ -117,7 +133,7 @@ class SmartAgent {
   }
 
   // ── submitDiagnostic ──────────────────────────────────────────────────────
-  async submitDiagnostic(userId, answers) {
+  async submitDiagnostic(userId, answers, profilingData = null) {
     const session = this.loadSession(userId);
     const normalizedAnswers = session.diagnosticQuestions.map((question, index) => {
       const rawAnswer = answers[index];
@@ -139,6 +155,15 @@ class SmartAgent {
       diagnosticScores[skill.id] = average;
       skill.mastery = average;
       skill.status = average >= 75 ? 'complete' : 'active';
+    }
+
+    // Store profiling data in session for personalization
+    if (profilingData) {
+      session.profilingData = profilingData;
+      session.goal.profile.education    = profilingData.education    || session.goal.profile.education;
+      session.goal.profile.experience   = profilingData.experience   || session.goal.profile.experience;
+      session.goal.profile.toolExposure = profilingData.toolExposure || session.goal.profile.toolExposure;
+      session.goal.profile.practicalExp = profilingData.practicalExp || session.goal.profile.practicalExp;
     }
 
     const firstIncompleteIndex = session.goal.skills.findIndex(s => s.status !== 'complete');

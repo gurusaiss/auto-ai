@@ -3,11 +3,12 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 
-const Landing = lazy(() => import('./pages/Landing.jsx'));
+const Landing    = lazy(() => import('./pages/Landing.jsx'));
+const Profiling  = lazy(() => import('./pages/Profiling.jsx'));
 const Diagnostic = lazy(() => import('./pages/Diagnostic.jsx'));
-const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
-const Session = lazy(() => import('./pages/Session.jsx'));
-const Report = lazy(() => import('./pages/Report.jsx'));
+const Dashboard  = lazy(() => import('./pages/Dashboard.jsx'));
+const Session    = lazy(() => import('./pages/Session.jsx'));
+const Report     = lazy(() => import('./pages/Report.jsx'));
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           }>
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/profiling" element={<Profiling />} />
               <Route path="/diagnostic" element={<Diagnostic />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/session/:day" element={<Session />} />

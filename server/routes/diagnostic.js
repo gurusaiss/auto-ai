@@ -10,8 +10,8 @@ const agent = new SmartAgent();
  */
 router.post('/submit', async (req, res) => {
   try {
-    const { userId, answers } = req.body;
-    
+    const { userId, answers, profilingData } = req.body;
+
     if (!userId || !answers || !Array.isArray(answers)) {
       return res.status(400).json({
         success: false,
@@ -19,8 +19,8 @@ router.post('/submit', async (req, res) => {
         error: 'userId and answers array are required'
       });
     }
-    
-    const result = await agent.submitDiagnostic(userId, answers);
+
+    const result = await agent.submitDiagnostic(userId, answers, profilingData || null);
     
     res.json({
       success: true,
