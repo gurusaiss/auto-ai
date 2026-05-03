@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const userId = localStorage.getItem('skillforge:userId');
-
 function RadarChart({ skills }) {
   if (!skills?.length) return null;
   const size = 220;
@@ -89,7 +87,7 @@ export default function CareerTwin() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const uid = userId;
+    const uid = localStorage.getItem('skillforge:userId');
     if (!uid) { setError('No active session. Complete goal setup first.'); setLoading(false); return; }
 
     Promise.all([

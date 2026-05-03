@@ -1,8 +1,4 @@
 import React, { useMemo } from 'react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, Area, AreaChart, Legend
-} from 'recharts';
 
 /**
  * PredictiveMasteryForecast
@@ -40,10 +36,8 @@ function masteryLabel(mastery) {
 }
 
 export default function PredictiveMasteryForecast({ sessions = [], skills = [] }) {
-  const { chartData, forecastSummary } = useMemo(() => {
-    if (sessions.length < 2) {
-      return { chartData: [], forecastSummary: null };
-    }
+  const forecastSummary = useMemo(() => {
+    if (sessions.length < 2) return null;
 
     const scores = sessions.map((s, i) => ({ x: i + 1, y: s.score }));
     const { slope, intercept } = linearRegression(scores);
@@ -51,54 +45,19 @@ export default function PredictiveMasteryForecast({ sessions = [], skills = [] }
     const lastScore = sessions[sessions.length - 1]?.score || 50;
     const lastDay = sessions.length;
 
-    // Build historical data
-    const historical = sessions.map((s, i) => ({
-      day: i + 1,
-      label: `Day ${i + 1}`,
-      actual: s.score,
-      skillName: s.skillName,
-    }));
-
-    // Build 14-day forecast with confidence bands
-    const forecast = [];
-    for (let d = 1; d <= 14; d++) {
-      const baseProjection = intercept + slope * (lastDay + d);
-      const momentumAdjusted = baseProjection + momentum * 0.3 * Math.log(d + 1);
-      const projected = Math.min(98, Math.max(10, momentumAdjusted));
-      const confidence = Math.max(3, 8 + d * 0.8); // uncertainty grows
-
-      forecast.push({
-        day: lastDay + d,
-        label: `+${d}d`,
-        projected: Math.round(projected),
-        upper: Math.min(100, Math.round(projected + confidence)),
-        lower: Math.max(0, Math.round(projected - confidence)),
-      });
-    }
-
-    const combinedData = [
-      ...historical.map(h => ({ ...h, type: 'actual' })),
-      { day: lastDay, label: 'Now', actual: lastScore, projected: lastScore, upper: lastScore, lower: lastScore, type: 'bridge' },
-      ...forecast.map(f => ({ ...f, type: 'forecast' })),
-    ];
-
-    const day14Score = forecast[13]?.projected || lastScore;
+    const projected14 = intercept + slope * (lastDay + 14) + momentum * 0.3 * Math.log(15);
+    const day14Score = Math.min(98, Math.max(10, Math.round(projected14)));
     const { label, color } = masteryLabel(day14Score);
 
     return {
-      chartData: combinedData,
-      forecastSummary: {
-        currentScore: lastScore,
-        day14Score,
-        label,
-        color,
-        slope: Math.round(slope * 10) / 10,
-        momentum: Math.round(momentum * 10) / 10,
-        daysToMastery: slope > 0
-          ? Math.ceil((75 - lastScore) / slope)
-          : null,
-        trend: slope > 1.5 ? 'accelerating' : slope > 0.3 ? 'steady' : slope > -0.5 ? 'plateauing' : 'declining',
-      },
+      currentScore: lastScore,
+      day14Score,
+      label,
+      color,
+      slope: Math.round(slope * 10) / 10,
+      momentum: Math.round(momentum * 10) / 10,
+      daysToMastery: slope > 0 ? Math.ceil((75 - lastScore) / slope) : null,
+      trend: slope > 1.5 ? 'accelerating' : slope > 0.3 ? 'steady' : slope > -0.5 ? 'plateauing' : 'declining',
     };
   }, [sessions]);
 
@@ -115,26 +74,6 @@ export default function PredictiveMasteryForecast({ sessions = [], skills = [] }
       </div>
     );
   }
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null;
-    const d = payload[0]?.payload;
-    return (
-      <div className="bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs shadow-xl">
-        <p className="font-bold text-slate-200 mb-1">{d.type === 'forecast' ? `Forecast ${label}` : label}</p>
-        {d.actual !== undefined && (
-          <p className="text-emerald-400">Actual: <strong>{d.actual}%</strong></p>
-        )}
-        {d.projected !== undefined && d.type === 'forecast' && (
-          <>
-            <p className="text-indigo-400">Projected: <strong>{d.projected}%</strong></p>
-            <p className="text-slate-500">Range: {d.lower}–{d.upper}%</p>
-          </>
-        )}
-        {d.skillName && <p className="text-slate-500 mt-1">{d.skillName}</p>}
-      </div>
-    );
-  };
 
   return (
     <div className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-4 space-y-4">
@@ -186,54 +125,6 @@ export default function PredictiveMasteryForecast({ sessions = [], skills = [] }
           </div>
         </div>
       )}
-
-      {/* Chart */}
-      <div className="h-44">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-            <defs>
-              <linearGradient id="actualGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#10B981" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="forecastGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366F1" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="#1E293B" strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={{ fontSize: 8, fill: '#475569' }} />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 8, fill: '#475569' }} />
-            <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={75} stroke="#F59E0B" strokeDasharray="4 4" label={{ value: 'Mastery 75%', fontSize: 8, fill: '#F59E0B', position: 'right' }} />
-
-            {/* Confidence band */}
-            <Area dataKey="upper" stroke="none" fill="#6366F1" fillOpacity={0.06} connectNulls />
-            <Area dataKey="lower" stroke="none" fill="#0F172A" fillOpacity={1} connectNulls />
-
-            {/* Actual performance */}
-            <Line
-              dataKey="actual"
-              stroke="#10B981"
-              strokeWidth={2.5}
-              dot={{ r: 3, fill: '#10B981', strokeWidth: 0 }}
-              connectNulls
-              name="Actual"
-            />
-
-            {/* Forecast line */}
-            <Line
-              dataKey="projected"
-              stroke="#6366F1"
-              strokeWidth={2}
-              strokeDasharray="6 4"
-              dot={false}
-              connectNulls
-              name="Forecast"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
 
       {/* Insight */}
       {forecastSummary && (

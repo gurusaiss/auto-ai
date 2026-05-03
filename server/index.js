@@ -12,6 +12,7 @@ import reportRouter from './routes/report.js';
 import simulationRouter from './routes/simulation.js';
 import marketRouter from './routes/market.js';
 import demoRouter from './routes/demo.js';
+import interviewRouter from './routes/interview.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataPath = join(__dirname, 'data');
@@ -79,6 +80,7 @@ app.use('/api/report', reportRouter);
 app.use('/api/simulation', simulationRouter);
 app.use('/api/market', marketRouter);
 app.use('/api/demo', demoRouter);
+app.use('/api/interview', interviewRouter);
 
 // Global error handler
 app.use((err, req, res, _next) => {

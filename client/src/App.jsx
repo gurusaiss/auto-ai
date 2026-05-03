@@ -13,6 +13,7 @@ const SimulationLab        = lazy(() => import('./pages/SimulationLab.jsx'));
 const CareerTwin           = lazy(() => import('./pages/CareerTwin.jsx'));
 const ExplainabilityConsole = lazy(() => import('./pages/ExplainabilityConsole.jsx'));
 const DemoMode             = lazy(() => import('./pages/DemoMode.jsx'));
+const InterviewSimulator   = lazy(() => import('./pages/InterviewSimulator.jsx'));
 
 const Loader = () => (
   <div className="mx-auto max-w-4xl px-6 py-14 text-slate-400 text-center">
@@ -40,6 +41,7 @@ function App() {
               <Route path="/career-twin"  element={<CareerTwin />} />
               <Route path="/explain"      element={<ExplainabilityConsole />} />
               <Route path="/demo"         element={<DemoMode />} />
+              <Route path="/interview"    element={<InterviewSimulator />} />
             </Routes>
           </Suspense>
         </div>

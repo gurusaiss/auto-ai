@@ -584,6 +584,7 @@ export default function Landing() {
               { icon: '🚀', label: 'Live Demo', desc: 'Watch 7 agents orchestrate in real-time', path: '/demo', color: '#10B981' },
               { icon: '🧬', label: 'Career Digital Twin', desc: 'Your evolving virtual career model', path: '/career-twin', color: '#6366F1' },
               { icon: '🔮', label: 'Simulation Lab', desc: 'What-if career scenario analyzer', path: '/simulation', color: '#8B5CF6' },
+              { icon: '🎤', label: 'Interview Simulator', desc: 'AI-powered mock interviews', path: '/interview', color: '#EC4899' },
               { icon: '🧠', label: 'Explainability Console', desc: 'Full agent reasoning chain', path: '/explain', color: '#F59E0B' },
             ].map(({ icon, label, desc, path, color }) => (
               <button key={path} onClick={() => navigate(path)}

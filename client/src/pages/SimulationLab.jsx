@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const userId = localStorage.getItem('skillforge:userId');
-
-const QUICK_SKILLS = [
-  { label: 'Python', icon: '🐍' }, { label: 'Machine Learning', icon: '🤖' },
-  { label: 'Kubernetes', icon: '☸️' }, { label: 'React', icon: '⚛️' },
-  { label: 'AWS', icon: '☁️' }, { label: 'TypeScript', icon: '📘' },
-  { label: 'Rust', icon: '🦀' }, { label: 'Go', icon: '🐹' },
-];
+// Dynamic quick skills derived from user goal, with tech fallback
+function getDynamicSkills(goalSkills) {
+  if (goalSkills?.length > 0) {
+    return goalSkills.slice(0, 6).map(s => ({ label: s.name, icon: '⚡' }));
+  }
+  return [
+    { label: 'Python', icon: '🐍' }, { label: 'Machine Learning', icon: '🤖' },
+    { label: 'React', icon: '⚛️' }, { label: 'AWS', icon: '☁️' },
+    { label: 'TypeScript', icon: '📘' }, { label: 'Go', icon: '🐹' },
+  ];
+}
 
 function MetricCard({ label, before, after, unit = '', color = '#6366F1', prefix = '' }) {
   const isUp = after > before;
@@ -54,10 +57,39 @@ function TimelineBar({ items }) {
 
 export default function SimulationLab() {
   const navigate = useNavigate();
+  const userId = localStorage.getItem('skillforge:userId');
   const [skill, setSkill] = useState('');
+  const [goalSkills, setGoalSkills] = useState([]);
+  const [goalDomain, setGoalDomain] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+
+  // Load user's goal to auto-populate skill field
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/session/dashboard/${userId}`)
+      .then(r => r.json())
+      .then(json => {
+        if (json.success) {
+          const skills = json.data?.goal?.skills || [];
+          const domain = json.data?.goal?.domainLabel || '';
+          setGoalSkills(skills);
+          setGoalDomain(domain);
+          // Auto-populate skill with primary skill if not set
+          if (skills.length > 0 && !skill) {
+            setSkill(skills[0].name);
+          }
+          // Auto-populate comparisons
+          if (skills.length >= 2) {
+            setCompareA(skills[0].name);
+            setCompareB(skills[1].name);
+          }
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
   const [compareA, setCompareA] = useState('Python');
   const [compareB, setCompareB] = useState('AWS');
   const [compareResult, setCompareResult] = useState(null);
@@ -158,7 +190,10 @@ export default function SimulationLab() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {QUICK_SKILLS.map(({ label, icon }) => (
+                {goalSkills.length > 0 && (
+                  <span className="text-xs text-slate-600 self-center mr-1">Your skills:</span>
+                )}
+                {getDynamicSkills(goalSkills).map(({ label, icon }) => (
                   <button key={label} onClick={() => runSimulation(label)}
                     className="px-3 py-1.5 bg-slate-700/50 hover:bg-violet-600/30 border border-slate-600 hover:border-violet-500 rounded-full text-sm text-slate-300 hover:text-white transition-all">
                     {icon} {label}

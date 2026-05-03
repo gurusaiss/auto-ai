@@ -45,46 +45,36 @@ function AgentBubble({ decision, index, isLatest }) {
   const ts = new Date(decision.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
   return (
-    <div
-      className="relative pl-8"
-      style={{ animationDelay: `${index * 80}ms` }}
-    >
+    <div className="relative pl-9 mb-3" style={{ animationDelay: `${index * 80}ms` }}>
       {/* Timeline dot */}
       <div
-        className="absolute left-2 top-3 w-3 h-3 rounded-full border-2 border-[#0F172A] z-10"
+        className="absolute left-2.5 top-4 w-3.5 h-3.5 rounded-full border-2 border-[#080E1A] z-10 flex-shrink-0"
         style={{ backgroundColor: meta.color }}
       />
       {/* Connecting line */}
       {index > 0 && (
-        <div
-          className="absolute left-[14px] top-0 w-px h-3"
-          style={{ backgroundColor: meta.color, opacity: 0.3 }}
-        />
+        <div className="absolute left-[15px] top-0 w-px h-4"
+          style={{ backgroundColor: meta.color, opacity: 0.25 }} />
       )}
 
       <div
-        className="rounded-xl border p-3 cursor-pointer transition-all hover:brightness-110 mb-2"
+        className="rounded-xl border p-4 cursor-pointer transition-all hover:brightness-110"
         style={{ borderColor: `${meta.color}30`, backgroundColor: `${meta.color}08` }}
         onClick={() => setExpanded(e => !e)}
       >
-        <div className="flex items-start gap-2">
-          <span className="text-sm flex-shrink-0">{meta.icon}</span>
+        <div className="flex items-start gap-3">
+          <span className="text-base flex-shrink-0 mt-0.5">{meta.icon}</span>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-1 flex-wrap">
-              <span
-                className="text-xs font-bold"
-                style={{ color: meta.color }}
-              >
-                {meta.name}
-              </span>
-              <span className="text-[10px] text-slate-600 font-mono">{ts}</span>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-sm font-black" style={{ color: meta.color }}>{meta.name}</span>
+              <span className="text-[10px] text-slate-600 font-mono flex-shrink-0">{ts}</span>
             </div>
 
-            <p className="text-xs text-slate-300 mt-0.5 leading-relaxed font-medium">
+            <p className="text-sm text-slate-200 leading-relaxed font-semibold mb-1">
               {decision.title}
             </p>
 
-            <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+            <p className="text-xs text-slate-400 leading-relaxed">
               {isLatest
                 ? <TypewriterText text={decision.detail} />
                 : decision.detail
@@ -92,11 +82,9 @@ function AgentBubble({ decision, index, isLatest }) {
             </p>
 
             {expanded && decision.reasoning && (
-              <div className="mt-2 pt-2 border-t border-slate-700/40">
-                <div className="flex items-center gap-1 mb-1">
-                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Internal Reasoning</span>
-                </div>
-                <p className="text-[10px] text-slate-400 italic leading-relaxed">
+              <div className="mt-3 pt-3 border-t border-slate-700/40">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Internal Reasoning</p>
+                <p className="text-xs text-slate-400 italic leading-relaxed">
                   {isLatest
                     ? <TypewriterText text={`"${decision.reasoning}"`} speed={8} />
                     : `"${decision.reasoning}"`
@@ -105,16 +93,18 @@ function AgentBubble({ decision, index, isLatest }) {
               </div>
             )}
 
-            <div className="mt-1.5 flex items-center justify-between">
+            <div className="mt-2 flex items-center justify-between">
               <span
-                className="text-[9px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider"
+                className="text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider"
                 style={{ backgroundColor: `${meta.color}15`, color: meta.color }}
               >
                 {decision.type.replace(/_/g, ' ')}
               </span>
-              <button className="text-[9px] text-slate-600 hover:text-slate-400">
-                {expanded ? '▲ hide reasoning' : '▼ show reasoning'}
-              </button>
+              {decision.reasoning && (
+                <button className="text-[10px] text-slate-600 hover:text-slate-400 transition-colors">
+                  {expanded ? '▲ hide' : '▼ reasoning'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -141,14 +131,11 @@ export default function AgentBrain({ decisions = [], isThinking = false, thinkin
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }
-    // Derive active agents from decisions
     const active = new Set(decisions.slice(-3).map(d => d.type));
     setActiveAgents(active);
   }, [decisions]);
-
-  const agentList = Object.entries(AGENT_NAMES);
 
   return (
     <div className="rounded-xl border border-slate-700/50 bg-[#080E1A] overflow-hidden h-full flex flex-col">
@@ -164,44 +151,17 @@ export default function AgentBrain({ decisions = [], isThinking = false, thinkin
         <LivePulse />
       </div>
 
-      {/* Agent roster */}
-      <div className="px-3 py-2 border-b border-slate-800/60 bg-slate-900/30">
-        <div className="flex flex-wrap gap-1.5">
-          {agentList.map(([type, meta]) => {
-            const isActive = activeAgents.has(type);
-            return (
-              <div
-                key={type}
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold transition-all duration-500"
-                style={{
-                  backgroundColor: isActive ? `${meta.color}20` : 'rgba(255,255,255,0.03)',
-                  color: isActive ? meta.color : '#475569',
-                  borderWidth: 1,
-                  borderColor: isActive ? `${meta.color}40` : '#1E293B',
-                  boxShadow: isActive ? `0 0 8px ${meta.color}30` : 'none',
-                }}
-              >
-                <span>{meta.icon}</span>
-                <span>{meta.name}</span>
-                {isActive && (
-                  <span className="w-1 h-1 rounded-full bg-current animate-pulse" />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Decision stream */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-3 py-3 space-y-1"
-        style={{ minHeight: 0 }}
+        className="flex-1 overflow-y-auto px-4 py-4"
+        style={{ minHeight: 0, scrollBehavior: 'smooth' }}
       >
         {decisions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-8">
-            <div className="text-3xl mb-2 opacity-30">🧠</div>
-            <p className="text-xs text-slate-600">Agent decisions will appear here as you progress.</p>
+          <div className="flex flex-col items-center justify-center h-full text-center py-10">
+            <div className="text-4xl mb-3 opacity-20">🧠</div>
+            <p className="text-sm text-slate-600 font-medium">No agent decisions yet.</p>
+            <p className="text-xs text-slate-700 mt-1">Decisions appear here as agents process your goal and sessions.</p>
           </div>
         ) : (
           decisions.map((d, i) => (
@@ -234,12 +194,10 @@ export default function AgentBrain({ decisions = [], isThinking = false, thinkin
       </div>
 
       {/* Stats footer */}
-      <div className="px-4 py-2 border-t border-slate-800 bg-slate-900/40">
-        <div className="flex items-center justify-between text-[10px]">
-          <span className="text-slate-600">{decisions.length} decisions logged</span>
-          <span className="text-slate-600">
-            {Object.values(AGENT_NAMES).length} agents active
-          </span>
+      <div className="px-4 py-2.5 border-t border-slate-800 bg-slate-900/40">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-slate-600 font-semibold">{decisions.length} decisions logged</span>
+          <span className="text-xs text-slate-600">{Object.values(AGENT_NAMES).length} agents · Click bubble for reasoning</span>
         </div>
       </div>
 

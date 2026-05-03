@@ -76,6 +76,15 @@ export const api = {
   getMarketIntel:   (userId)       => request(`/api/market/intelligence/${userId}`),
   getMarketTrends:  (domain)       => request(`/api/market/trends/${domain}`),
 
+  // Interview Simulator
+  generateInterviewQuestions: (body) => request('/api/interview/generate', { method: 'POST', body: JSON.stringify(body) }),
+  evaluateInterviewAnswer:    (body) => request('/api/interview/evaluate', { method: 'POST', body: JSON.stringify(body) }),
+  generateInterviewReport:    (body) => request('/api/interview/report',   { method: 'POST', body: JSON.stringify(body) }),
+
+  // Session Quiz & Notes
+  generateSessionQuiz: (body)     => request('/api/session/quiz', { method: 'POST', body: JSON.stringify(body) }),
+  generateNotes:       (body)     => request('/api/session/notes', { method: 'POST', body: JSON.stringify(body) }),
+
   // Health
   getHealth:        ()             => request('/api/health'),
 };
