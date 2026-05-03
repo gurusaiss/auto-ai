@@ -800,6 +800,29 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ── FRONTIER INTELLIGENCE MODULES ─────────────────────────────── */}
+      <div className="rounded-2xl border border-slate-700/40 bg-slate-900/40 p-4">
+        <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3">Frontier Intelligence Modules</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { icon: '🚀', label: 'Live Demo',       sub: 'Watch 7 agents run',        path: '/demo',        color: '#10B981' },
+            { icon: '🧬', label: 'Career Twin',     sub: 'Your digital career model', path: '/career-twin', color: '#6366F1' },
+            { icon: '🔮', label: 'Simulator',       sub: 'What-if scenarios',         path: '/simulation',  color: '#8B5CF6' },
+            { icon: '🧠', label: 'Explainability',  sub: 'Full reasoning chain',      path: '/explain',     color: '#F59E0B' },
+          ].map(({ icon, label, sub, path, color }) => (
+            <button key={path} onClick={() => navigate(path)}
+              className="flex flex-col items-start gap-1.5 p-3 rounded-xl border border-slate-700/50 hover:border-slate-600 bg-slate-800/30 hover:bg-slate-800/60 transition-all text-left group">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-base"
+                style={{ background: color + '15', border: `1px solid ${color}30` }}>
+                {icon}
+              </div>
+              <div className="font-bold text-slate-200 text-xs group-hover:text-white">{label}</div>
+              <div className="text-slate-600 text-[10px] leading-snug">{sub}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* ── GENERATE REPORT ─────────────────────────────────────────────── */}
       <button
         onClick={handleReport}
